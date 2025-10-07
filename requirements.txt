@@ -1,0 +1,25 @@
+# --- Framework principal ---
+Django==4.2.15          # Versão LTS estável e atual em 2025
+
+# --- Banco de dados ---
+psycopg2-binary==2.9.9   # Driver PostgreSQL para Django
+
+# --- Variáveis de ambiente ---
+django-environ==0.11.2   # Para ler .env no settings.py
+
+# --- Servidor de produção ---
+gunicorn==21.2.0         # Para rodar o projeto no Docker / produção
+
+# --- Utilitários (opcional mas recomendável) ---
+python-decouple==3.8     # Alternativa leve para configuração
+whitenoise==6.7.0        # Servir arquivos estáticos facilmente
+dj-database-url==2.2.0   # Simplifica config de banco via URL (útil em deploy)
+
+# --- Testes e qualidade ---
+pytest==8.3.2
+pytest-django==4.8.0
+flake8==7.1.1
+
+# --- Visualizações e relatórios (futuro) ---
+pandas==2.2.3            # Para futuras análises financeiras
+plotly==5.24.0           # Gráficos interativos
