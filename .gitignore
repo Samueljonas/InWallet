@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+.env
+
+# Virtual env
+venv/
+.venv/
+
+# VS Code / IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Byte-compiled / cache
+*.pyc
+__pycache__/
+
+# macOS / Linux
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.tar
