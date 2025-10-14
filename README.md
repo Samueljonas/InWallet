@@ -21,41 +21,6 @@ Este projeto foi desenvolvido com fins educacionais, para demonstrar boas práti
 ✔️ Preparado para integração futura com bancos e importação de extratos
 ✔️ Configuração via .env para segurança e portabilidade
 
-🧱 Estrutura do Projeto
-inwallet_project/
-│
-├── manage.py                # CLI principal do Django
-├── .env                     # Variáveis de ambiente
-├── .gitignore               # Arquivos ignorados no Git
-├── requirements.txt          # Dependências do projeto
-├── Dockerfile
-├── docker-compose.yml
-│
-├── inwallet/                # Configurações globais do Django
-│   ├── settings.py          # Configurações do projeto
-│   ├── urls.py              # URLs principais
-│   ├── asgi.py              # Configuração ASGI
-│   └── wsgi.py              # Configuração WSGI
-│
-└── wallet/                  # App principal (gastos, categorias, relatórios)
-    ├── admin.py             # Registro no painel admin
-    ├── apps.py
-    ├── forms.py             # Formulários de entrada
-    ├── models.py            # Estrutura do banco de dados
-    ├── urls.py              # Rotas do app
-    ├── views.py             # Lógica de negócio
-    ├── tests.py
-    │
-    └── templates/           # Templates HTML do app
-        ├── base.html
-        ├── dashboard.html
-        ├── reports/
-        │   └── categories.html
-        └── transactions/
-            ├── list.html
-            ├── form.html
-            └── confirm_delete.html
-
 
 ⚙️ Tecnologias Utilizadas
 Tecnologia	Descrição
