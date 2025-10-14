@@ -1,0 +1,28 @@
+{% extends 'base.html' %} {% block content %}
+<h2>Resumo Financeiro</h2>
+
+<h4>Contas</h4>
+<ul>
+  {% for a in accounts %}
+  <li>{{ a.name }} — R$ {{ a.balance }}</li>
+  {% endfor %}
+</ul>
+
+<h4>Top 5 Gastos por Categoria</h4>
+<ul>
+  {% for c in expenses_by_category %}
+  <li>{{ c.category__name }} — R$ {{ c.total }}</li>
+  {% endfor %}
+</ul>
+
+<h4>Resumo Mensal</h4>
+<ul>
+  {% for m in monthly %}
+  <li>{{ m.month|date:"M/Y" }} — R$ {{ m.total }}</li>
+  {% endfor %}
+</ul>
+
+<a href="{% url 'wallet:transactions_create' %}" class="btn btn-primary"
+  >Novo Gasto</a
+>
+{% endblock %}
