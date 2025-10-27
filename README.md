@@ -99,6 +99,7 @@ Esses dados são calculados usando QuerySets Django com funções de agregação
 🧑‍💻 Autores
 
 Samuel Jonas
+
 Jairon José
 
 💼 Projeto desenvolvido para fins acadêmicos.
