@@ -1,28 +1,147 @@
-{% extends 'base.html' %} {% block content %}
-<h2>Resumo Financeiro</h2>
+{% extends 'base.html' %}
+{% load static %}
 
-<h4>Contas</h4>
-<ul>
-  {% for a in accounts %}
-  <li>{{ a.name }} — R$ {{ a.balance }}</li>
-  {% endfor %}
-</ul>
+{% block title %}Dashboard{% endblock %}
 
-<h4>Top 5 Gastos por Categoria</h4>
-<ul>
-  {% for c in expenses_by_category %}
-  <li>{{ c.category__name }} — R$ {{ c.total }}</li>
-  {% endfor %}
-</ul>
+{% block content %}
+<div class="container-fluid px-md-4 py-5">
 
-<h4>Resumo Mensal</h4>
-<ul>
-  {% for m in monthly %}
-  <li>{{ m.month|date:"M/Y" }} — R$ {{ m.total }}</li>
-  {% endfor %}
-</ul>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Meu Resumo Financeiro</h1>
+        
+        <div>
+            <a href="{% url 'wallet:income_create' %}" class="btn btn-success btn-lg shadow-sm me-2">
+                💰 Adicionar Receita
+            </a>
+            <a href="{% url 'wallet:expense_create' %}" class="btn btn-primary btn-lg shadow-sm">
+                💸 Novo Gasto
+            </a>
+        </div>
+    </div>
 
-<a href="{% url 'wallet:transactions_create' %}" class="btn btn-primary"
-  >Novo Gasto</a
->
+    <div class="row">
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Saldo Total</h5>
+                    <p class="card-text h2">R$ {{ total_balance|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success">Receita (Mês)</h5>
+                    <p class="card-text h2 text-success">+ R$ {{ monthly_income|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-danger">Despesa (Mês)</h5>
+                    <p class="card-text h2 text-danger">- R$ {{ monthly_expense|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info">Balanço (Mês)</h5>
+                    <p class="card-text h2 text-info">
+                        {% if monthly_net > 0 %}+{% endif %}R$ {{ monthly_net|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white border-0">
+            <ul class="nav nav-tabs card-header-tabs" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="contas-tab" data-bs-toggle="tab" data-bs-target="#contas-pane" type="button" role="tab" aria-controls="contas-pane" aria-selected="true">
+                        Saldos por Conta
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos-pane" type="button" role="tab" aria-controls="gastos-pane" aria-selected="false">
+                        Top 5 Gastos (Mês)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="resumo-tab" data-bs-toggle="tab" data-bs-target="#resumo-pane" type="button" role="tab" aria-controls="resumo-pane" aria-selected="false">
+                        Resumo Mensal
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="tab-content" id="dashboardTabsContent">
+                
+                <div class="tab-pane fade show active" id="contas-pane" role="tabpanel" aria-labelledby="contas-tab" tabindex="0">
+                    <ul class="list-group list-group-flush">
+                        {% for a in accounts %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            {{ a.name }}
+                            <span class="badge bg-primary rounded-pill fs-6">R$ {{ a.balance|floatformat:2 }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item p-3">Nenhuma conta cadastrada.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="tab-pane fade" id="gastos-pane" role="tabpanel" aria-labelledby="gastos-tab" tabindex="0">
+                    <ul class="list-group list-group-flush">
+                        {% for c in expenses_by_category %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            {{ c.category__name }}
+                            <span class="badge bg-danger rounded-pill fs-6">R$ {{ c.total|floatformat:2 }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item p-3">Nenhum gasto registrado este mês.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="tab-pane fade" id="resumo-pane" role="tabpanel" aria-labelledby="resumo-tab" tabindex="0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="p-3">Mês</th>
+                                    <th scope="col" class="text-success p-3">Receita</th>
+                                    <th scope="col" class="text-danger p-3">Despesa</th>
+                                    <th scope="col" class="text-info p-3">Balanço</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in monthly_summary %}
+                                <tr>
+                                    <td class="p-3">{{ m.month|date:"M/Y" }}</td>
+                                    <td class="text-success p-3">+ R$ {{ m.total_income|floatformat:2 }}</td>
+                                    <td class="text-danger p-3">- R$ {{ m.total_expense|floatformat:2 }}</td>
+                                    <td class="fw-bold {% if m.net >= 0 %}text-info{% else %}text-danger{% endif %} p-3">
+                                        R$ {{ m.net|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center p-3">Sem dados históricos.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
