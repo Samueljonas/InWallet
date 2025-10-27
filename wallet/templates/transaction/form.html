@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {{ form_title|default:"Nova Transação" }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm border-0 p-4 p-md-5">
+        <h2 class="mb-4">{{ form_title }}</h2>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.account.id_for_label }}" class="form-label">Conta</label>
+                    {{ form.account }}
+                    {% for error in form.account.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.category.id_for_label }}" class="form-label">Categoria</label>
+                    {{ form.category }}
+                    {% for error in form.category.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.amount.id_for_label }}" class="form-label">Valor</label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        {{ form.amount }}
+                    </div>
+                    {% for error in form.amount.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.date.id_for_label }}" class="form-label">Data</label>
+                    {{ form.date }}
+                    {% for error in form.date.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.payment_method.id_for_label }}" class="form-label">Método de Pagamento (Opcional)</label>
+                    {{ form.payment_method }}
+                    {% for error in form.payment_method.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Descrição (Opcional)</label>
+                    {{ form.description }}
+                    {% for error in form.description.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.note.id_for_label }}" class="form-label">Nota (Opcional)</label>
+                {{ form.note }}
+                {% for error in form.note.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <hr class="my-4">
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'wallet:dashboard' %}" class="btn btn-secondary me-2">Cancelar</a>
+                <button type="submit" class="btn btn-success">💾 Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
