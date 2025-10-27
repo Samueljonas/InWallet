@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
-user = settings.AUTH_USER_MODEL
+User = settings.AUTH_USER_MODEL
 
 class Category(models.Model):
     TYPE_CHOICES = (
@@ -12,7 +12,7 @@ class Category(models.Model):
         ('income', 'Receita')
     )
 
-    user = models.ForeignKey(user, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
 
@@ -24,7 +24,7 @@ class Category(models.Model):
     
 
 class Account(models.Model):
-    user = models.ForeignKey(user, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
 
