@@ -7,6 +7,8 @@ from .models import Transaction, Account
 from .forms import ExpenseForm, IncomeForm # Importa os novos forms
 from django.utils import timezone
 from decimal import Decimal
+from django.views.generic import ListView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
@@ -66,9 +68,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         )
         return ctx
 
-# ----------------------------------------------------
-# AQUI COMEÇAM AS MUDANÇAS DE TRANSAÇÃO
-# ----------------------------------------------------
 
 class BaseTransactionCreateView(LoginRequiredMixin, CreateView):
     """
@@ -121,3 +120,77 @@ class TransactionListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user).order_by('-date')
+class UserFilteredQuerysetMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """
+    Mixin para garantir que o usuário só possa ver/editar/deletar
+    seus próprios objetos.
+    """
+    def get_queryset(self):
+        # Filtra o queryset base para incluir apenas itens do usuário logado
+        return super().get_queryset().filter(user=self.request.user)
+
+    def test_func(self):
+        # Garante que o usuário logado é o dono do objeto
+        # Usado por UpdateView e DeleteView
+        if hasattr(self, 'get_object'):
+            obj = self.get_object()
+            return obj.user == self.request.user
+        return True # Para ListView
+
+class TransactionListView(UserFilteredQuerysetMixin, ListView):
+    """
+    View para LER (Listar) todas as transações (o R do CRUD).
+    """
+    model = Transaction
+    template_name = 'transaction/list.html'
+    context_object_name = 'transaction'
+    paginate_by = 15 # Mostra 15 transações por página
+
+    def get_queryset(self):
+        return super().get_queryset().order_by('-date', '-id')
+class TransactionUpdateView(UserFilteredQuerysetMixin, UpdateView):
+    """
+    View para ATUALIZAR uma transação (o U do CRUD).
+    """
+    model = Transaction
+    template_name = 'transaction/form.html'
+    success_url = reverse_lazy('wallet:transaction_list') # Volta para a lista após editar
+
+    def get_form_class(self):
+        """
+        Seleciona dinamicamente o formulário (Income ou Expense)
+        baseado no tipo da transação que está sendo editada.
+        """
+        transaction = self.get_object()
+        if transaction.type == 'income':
+            return IncomeForm
+        else:
+            return ExpenseForm
+
+    def get_context_data(self, **kwargs):
+        """
+        Define o título da página para 'Editar Transação'.
+        """
+        context = super().get_context_data(**kwargs)
+        if self.get_object().type == 'income':
+            context['form_title'] = '💰 Editar Receita'
+        else:
+            context['form_title'] = '💸 Editar Gasto'
+        return context
+
+    def get_form_kwargs(self):
+        """
+        Passa o 'request.user' para o __init__ do formulário
+        (para que ele possa filtrar as categorias e contas).
+        """
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+class TransactionDeleteView(UserFilteredQuerysetMixin, DeleteView):
+    """
+    View para DELETAR uma transação (o D do CRUD).
+    """
+    model = Transaction
+    template_name = 'transaction/confirm_delete.html'
+    success_url = reverse_lazy('wallet:transaction_list') # Volta para a lista após deletar
