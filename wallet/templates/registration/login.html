@@ -1,37 +1,47 @@
-{% extends "base.html" %} {% load static %} {% block title %}Login{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
 {% block content %}
-<div
-  class="container d-flex justify-content-center align-items-center"
-  style="min-height: 80vh"
->
-  <div class="card shadow-lg p-4" style="width: 400px">
-    <h2 class="text-center mb-4">Entrar no inWallet 💰</h2>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 p-4 p-md-5">
+                <h2 class="mb-4 text-center">Login</h2>
 
-    {% if form.errors %}
-    <div class="alert alert-danger">
-      Usuário ou senha incorretos. Tente novamente.
+                {% if form.errors %}
+                    <div class="alert alert-danger" role="alert">
+                        Seu usuário ou senha estão incorretos. Tente novamente.
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">Usuário</label>
+                        <input type="text" name="username" class="form-control" id="{{ form.username.id_for_label }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.password.id_for_label }}" class="form-label">Senha</label>
+                        <input type="password" name="password" class="form-control" id="{{ form.password.id_for_label }}" required>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Entrar</button>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{% url 'password_reset' %}">Esqueceu a senha?</a>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="text-center mt-4">
+                <p>Não tem uma conta? <a href="{% url 'signup' %}">Cadastre-se aqui</a>.</p>
+            </div>
+        </div>
     </div>
-    {% endif %}
-
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-group mb-3">
-        <label for="id_username">Usuário</label>
-        {{ form.username }}
-      </div>
-      <div class="form-group mb-3">
-        <label for="id_password">Senha</label>
-        {{ form.password }}
-      </div>
-
-      <button type="submit" class="btn btn-primary w-100">Entrar</button>
-    </form>
-
-    <hr />
-    <p class="text-center">
-      Ainda não tem conta?
-      <a href="#">Cadastre-se</a>
-    </p>
-  </div>
 </div>
 {% endblock %}
