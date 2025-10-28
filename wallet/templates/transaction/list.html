@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Minhas Transações{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Minhas Transações</h1>
+        <a href="{% url 'wallet:dashboard' %}" class="btn btn-outline-secondary">Voltar ao Dashboard</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="p-3">Data</th>
+                            <th class="p-3">Categoria</th>
+                            <th class="p-3">Conta</th>
+                            <th class="p-3 text-end">Valor</th>
+                            <th class="p-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transaction %}
+                        <tr>
+                            <td class="p-3">{{ t.date|date:"d/m/Y" }}</td>
+                            <td class="p-3">
+                                {{ t.category.name }}
+                                <small class="d-block text-muted">{{ t.description|truncatechars:30 }}</small>
+                            </td>
+                            <td class="p-3">{{ t.account.name }}</td>
+                            
+                            <td class="p-3 text-end fw-bold {% if t.type == 'expense' %}text-danger{% else %}text-success{% endif %}">
+                                {% if t.type == 'expense' %}-{% else %}+{% endif %} R$ {{ t.amount|floatformat:2 }}
+                            </td>
+                            
+                            <td class="p-3 text-center">
+                                <a href="{% url 'wallet:transaction_edit' t.pk %}" class="btn btn-sm btn-outline-primary">
+                                    Editar
+                                </a>
+                                <a href="{% url 'wallet:transaction_delete' t.pk %}" class="btn btn-sm btn-outline-danger">
+                                    Excluir
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center p-4">
+                                Nenhuma transação encontrada.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if is_paginated %}
+    <nav aria-label="Paginação" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            {% endif %}
+
+            <li class="page-item active" aria-current="page">
+                <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+{% endblock %}
