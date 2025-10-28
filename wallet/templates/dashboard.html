@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Dashboard{% endblock %}
+
 
 {% block content %}
 <div class="container-fluid px-md-4 py-5">
@@ -11,83 +11,134 @@
         
         <div>
             <a href="{% url 'wallet:income_create' %}" class="btn btn-success btn-lg shadow-sm me-2">
-                💰 Adicionar Receita
+                <i class="bi bi-plus-circle"></i> Adicionar Receita
             </a>
             <a href="{% url 'wallet:expense_create' %}" class="btn btn-primary btn-lg shadow-sm">
-                💸 Novo Gasto
+                <i class="bi bi-dash-circle"></i> Novo Gasto
             </a>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+            <i class="bi bi-funnel"></i> Filtros
+        </button>
+    </div>
+
+    <div class="collapse" id="filterCollapse">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <form method="GET" action="{% url 'wallet:dashboard' %}" class="row g-3 align-items-center">
+                    <div class="col-md-5">
+                        <label for="month" class="form-label">Mês</label>
+                        <select name="month" id="month" class="form-select">
+                            {% for month in month_options %}
+                                <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                                    {{ month.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="year" class="form-label">Ano</label>
+                        <select name="year" id="year" class="form-select">
+                            {% for year in year_options %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid" style="margin-top: 2.3rem;">
+                        <button type="submit" class="btn btn-info text-white">Filtrar</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-6 col-lg-3 mb-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Saldo Total</h5>
-                    <p class="card-text h2">R$ {{ total_balance|floatformat:2 }}</p>
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-muted">Saldo Total</h5>
+                        <p class="card-text h2">R$ {{ total_balance|floatformat:2 }}</p>
+                    </div>
+                    <div class="icon-circle bg-primary text-white">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-6 col-lg-3 mb-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-success">Receita (Mês)</h5>
-                    <p class="card-text h2 text-success">+ R$ {{ monthly_income|floatformat:2 }}</p>
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-success">Receita (Mês)</h5>
+                        <p class="card-text h2 text-success">+ R$ {{ monthly_income|floatformat:2 }}</p>
+                    </div>
+                    <div class="icon-circle bg-success text-white">
+                        <i class="bi bi-arrow-up-right-circle"></i>
+                    </div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-6 col-lg-3 mb-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-danger">Despesa (Mês)</h5>
-                    <p class="card-text h2 text-danger">- R$ {{ monthly_expense|floatformat:2 }}</p>
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-danger">Despesa (Mês)</h5>
+                        <p class="card-text h2 text-danger">- R$ {{ monthly_expense|floatformat:2 }}</p>
+                    </div>
+                    <div class="icon-circle bg-danger text-white">
+                        <i class="bi bi-arrow-down-right-circle"></i>
+                    </div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-6 col-lg-3 mb-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-info">Balanço (Mês)</h5>
-                    <p class="card-text h2 text-info">
-                        {% if monthly_net > 0 %}+{% endif %}R$ {{ monthly_net|floatformat:2 }}
-                    </p>
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-info">Balanço (Mês)</h5>
+                        <p class="card-text h2 text-info">
+                            {% if monthly_net > 0 %}+{% endif %}R$ {{ monthly_net|floatformat:2 }}
+                        </p>
+                    </div>
+                    <div class="icon-circle bg-info text-white">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mt-4">
-        <div class="card-header bg-white border-0">
-            <ul class="nav nav-tabs card-header-tabs" id="dashboardTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="contas-tab" data-bs-toggle="tab" data-bs-target="#contas-pane" type="button" role="tab" aria-controls="contas-pane" aria-selected="true">
-                        Saldos por Conta
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos-pane" type="button" role="tab" aria-controls="gastos-pane" aria-selected="false">
-                        Top 5 Gastos (Mês)
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="resumo-tab" data-bs-toggle="tab" data-bs-target="#resumo-pane" type="button" role="tab" aria-controls="resumo-pane" aria-selected="false">
-                        Resumo Mensal
-                    </button>
-                </li>
-            </ul>
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0">Top 5 Gastos ({{ selected_month }}/{{ selected_year }})</h5>
+                </div>
+                <div class="card-body" style="min-height: 300px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
         </div>
         
-        <div class="card-body p-0">
-            <div class="tab-content" id="dashboardTabsContent">
-                
-                <div class="tab-pane fade show active" id="contas-pane" role="tabpanel" aria-labelledby="contas-tab" tabindex="0">
+        <div class="col-lg-7 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0">Saldos por Conta</h5>
+                </div>
+                <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
                         {% for a in accounts %}
                         <li class="list-group-item d-flex justify-content-between align-items-center p-3">
-                            {{ a.name }}
+                            <div>
+                                <i class="bi bi-credit-card-2-front me-2 text-muted"></i>
+                                {{ a.name }}
+                            </div>
                             <span class="badge bg-primary rounded-pill fs-6">R$ {{ a.balance|floatformat:2 }}</span>
                         </li>
                         {% empty %}
@@ -95,53 +146,129 @@
                         {% endfor %}
                     </ul>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="tab-pane fade" id="gastos-pane" role="tabpanel" aria-labelledby="gastos-tab" tabindex="0">
-                    <ul class="list-group list-group-flush">
-                        {% for c in expenses_by_category %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
-                            {{ c.category__name }}
-                            <span class="badge bg-danger rounded-pill fs-6">R$ {{ c.total|floatformat:2 }}</span>
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item p-3">Nenhum gasto registrado este mês.</li>
-                        {% endfor %}
-                    </ul>
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Resumo do Ano ({{ selected_year }})</h5>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#monthlyChartCollapse" aria-expanded="false" aria-controls="monthlyChartCollapse">
+                        Mostrar/Esconder Gráfico
+                    </button>
                 </div>
-
-                <div class="tab-pane fade" id="resumo-pane" role="tabpanel" aria-labelledby="resumo-tab" tabindex="0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col" class="p-3">Mês</th>
-                                    <th scope="col" class="text-success p-3">Receita</th>
-                                    <th scope="col" class="text-danger p-3">Despesa</th>
-                                    <th scope="col" class="text-info p-3">Balanço</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for m in monthly_summary %}
-                                <tr>
-                                    <td class="p-3">{{ m.month|date:"M/Y" }}</td>
-                                    <td class="text-success p-3">+ R$ {{ m.total_income|floatformat:2 }}</td>
-                                    <td class="text-danger p-3">- R$ {{ m.total_expense|floatformat:2 }}</td>
-                                    <td class="fw-bold {% if m.net >= 0 %}text-info{% else %}text-danger{% endif %} p-3">
-                                        R$ {{ m.net|floatformat:2 }}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center p-3">Sem dados históricos.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div class="collapse" id="monthlyChartCollapse">
+                    <div class="card-body">
+                        <canvas id="monthlyChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ---------------------------------
+    // 1. Gráfico de Categorias (Rosca)
+    // ---------------------------------
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        // Pega os dados da View
+        const categoryLabels = {{ category_labels|safe }};
+        const categoryData = {{ category_data|safe }};
+        
+        // Adiciona uma mensagem se não houver dados
+        if (categoryData.length === 0) {
+            categoryCtx.getContext('2d').fillText("Sem dados de despesa para este mês.", 10, 50);
+        } else {
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        label: 'Gastos por Categoria',
+                        data: categoryData,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // ---------------------------------
+    // 2. Gráfico Mensal (Barras)
+    // ---------------------------------
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (monthlyCtx) {
+        // Pega os dados da View
+        const monthLabels = {{ month_labels|safe }};
+        const incomeData = {{ income_data|safe }};
+        const expenseData = {{ expense_data|safe }};
+
+        // Adiciona uma mensagem se não houver dados
+        if (monthLabels.length === 0) {
+            monthlyCtx.getContext('2d').fillText("Sem dados para este ano.", 10, 50);
+        } else {
+            new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [
+                        {
+                            label: 'Receita',
+                            data: incomeData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Despesa',
+                            data: expenseData,
+                            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
 {% endblock %}
