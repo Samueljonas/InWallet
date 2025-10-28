@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'wallet',
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -38,7 +39,9 @@ ROOT_URLCONF = 'inwallet.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'wallet' / 'templates'],
+        'DIRS': [BASE_DIR / 'wallet' / 'templates', 
+                 BASE_DIR / 'users' / 'templates',],
+        
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -69,3 +72,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+LOGIN_REDIRECT_URL = 'wallet:dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
