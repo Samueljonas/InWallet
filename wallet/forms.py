@@ -1,6 +1,7 @@
 from django import forms
 from .models import Transaction, Category, Account
 from django.utils import timezone # Importar timezone
+from django.forms.widgets import NumberInput
 
 class ExpenseForm(forms.ModelForm):
     """
@@ -111,3 +112,50 @@ class IncomeForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'rows': 2}),
             'date': forms.DateInput(attrs={'type': 'date'}),
         }
+class AccountForm(forms.ModelForm):
+    """
+    Formulário para criar e editar Contas.
+    """
+    
+    # Renomeia o campo 'balance' para 'Saldo Inicial' no formulário
+    balance = forms.DecimalField(
+        label='Saldo Inicial', 
+        decimal_places=2, 
+        max_digits=14,
+        help_text="Defina o saldo atual desta conta. (Ex: 1500.00)"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Adiciona classes Bootstrap
+        self.fields['name'].widget.attrs.update({'class': 'form-control'})
+        self.fields['balance'].widget.attrs.update({'class': 'form-control'})
+        
+        # LÓGICA ESPECIAL:
+        # Se estiver editando (self.instance.pk existe), desabilita o campo 'balance'.
+        # O saldo só pode ser alterado por transações.
+        if self.instance.pk:
+            self.fields['balance'].widget.attrs['disabled'] = True
+            self.fields['balance'].widget.attrs['title'] = 'O saldo só pode ser alterado via transações.'
+            self.fields['balance'].help_text = 'O saldo não pode ser editado diretamente.'
+
+    class Meta:
+        model = Account
+        fields = ['name', 'balance']
+
+
+class CategoryForm(forms.ModelForm):
+    """
+    Formulário para criar e editar Categorias.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Adiciona classes Bootstrap
+        self.fields['name'].widget.attrs.update({'class': 'form-control'})
+        self.fields['type'].widget.attrs.update({'class': 'form-select'})
+
+    class Meta:
+        model = Category
+        fields = ['name', 'type']
