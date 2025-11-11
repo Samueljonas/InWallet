@@ -304,35 +304,31 @@ class CategoryDeleteView(BaseSettingsDeleteView):
     success_url = reverse_lazy('wallet:category_list')
 class TransactionListCreateAPIView(generics.ListCreateAPIView):
     """
-    API View para Listar (GET) e Criar (POST) Transações.
+    API View para:
+    - GET: Listar todas as transações do usuário logado.
+    - POST: Criar uma nova transação para o usuário logado.
     """
-    queryset = Transaction.objects.all()
+    
+    # 1. Qual Serializer (Tradutor) usar?
     serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated] # Só permite usuários logados
-
+    
+    # 2. Quem pode acessar? (Apenas usuários autenticados)
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     def get_queryset(self):
-        """ Filtra para mostrar apenas transações do usuário logado. """
-        return Transaction.objects.filter(user=self.request.user).order_by('-date', '-id')
+        """
+        Esta função garante que a API retorne APENAS as transações
+        do usuário que está fazendo a requisição.
+        """
+        user = self.request.user
+        if not user.is_authenticated:
+            return Transaction.objects.none()
+        return Transaction.objects.filter(user=user).order_by('-date', '-id')
 
     def perform_create(self, serializer):
-        """ Salva a transação com o usuário logado. """
+        """
+        Esta função é chamada ao criar (POST) uma nova transação.
+        Ela define o campo 'user' automaticamente.
+        """
         serializer.save(user=self.request.user)
-        # (O Signal já vai cuidar de atualizar o saldo da conta)
-
-class AccountListAPIView(generics.ListAPIView):
-    """ API View para listar as Contas do usuário. """
-    queryset = Account.objects.all()
-    serializer_class = AccountSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        return Account.objects.filter(user=self.request.user)
-
-class CategoryListAPIView(generics.ListAPIView):
-    """ API View para listar as Categorias do usuário. """
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        return Category.objects.filter(user=self.request.user)
+        # O seu 'signal.py' cuidará de atualizar o saldo da conta
+        # automaticamente, assim como antes.

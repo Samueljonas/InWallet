@@ -3,15 +3,26 @@ from . import views
 
 app_name = 'wallet'
 
-# URLs da API (JSON)
+# ----------------------------------------------------
+# (NOVO) URLs DA API (JSON)
+# ----------------------------------------------------
+# Estas URLs serão usadas pelo React
 api_patterns = [
-    path('transactions/', views.TransactionListCreateAPIView.as_view(), name='api_transactions_list'),
-    path('accounts/', views.AccountListAPIView.as_view(), name='api_accounts_list'),
-    path('categories/', views.CategoryListAPIView.as_view(), name='api_categories_list'),
+    path('transaction/', views.TransactionListCreateAPIView.as_view(), name='api_transactions_list'),
+    
     # (Adicionaremos as URLs de update/delete da API aqui depois)
+    # path('transactions/<int:pk>/', views.TransactionRetrieveUpdateDestroyAPIView.as_view(), name='api_transaction_detail'),
+    
+    # (Adicionaremos as APIs de Conta e Categoria aqui depois)
+    # path('accounts/', views.AccountListAPIView.as_view(), name='api_accounts_list'),
+    # path('categories/', views.CategoryListAPIView.as_view(), name='api_categories_list'),
 ]
 
-# URLs dos Templates (HTML)
+
+# ----------------------------------------------------
+# URLs DOS TEMPLATES (HTML)
+# ----------------------------------------------------
+# Estas são as URLs que você usa atualmente. Elas permanecem iguais.
 urlpatterns = [
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
@@ -19,7 +30,7 @@ urlpatterns = [
     # --- CRUD de Transações (HTML) ---
     path('transaction/expense/new/', views.ExpenseCreateView.as_view(), name='expense_create'),
     path('transaction/income/new/', views.IncomeCreateView.as_view(), name='income_create'),
-    path('transaction/', views.TransactionListView.as_view(), name='transactions_list'),
+    path('transaction/', views.TransactionListView.as_view(), name='transaction_list'),
     path('transaction/<int:pk>/edit/', views.TransactionUpdateView.as_view(), name='transaction_edit'),
     path('transaction/<int:pk>/delete/', views.TransactionDeleteView.as_view(), name='transaction_delete'),
 
@@ -36,5 +47,6 @@ urlpatterns = [
     path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
 
     # (NOVO) Namespace da API
-    path('api/v1/', include(api_patterns)),
+    # Inclui todas as nossas URLs da API sob o prefixo 'api/v1/'
+    path('api/v1/', include((api_patterns, 'api'), namespace='api')),
 ]
