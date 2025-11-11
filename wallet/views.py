@@ -10,6 +10,8 @@ from decimal import Decimal
 import json
 from .forms import AccountForm, CategoryForm
 import datetime
+from rest_framework import generics, permissions
+from .serializers import TransactionSerializer, AccountSerializer, CategorySerializer
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
@@ -300,3 +302,37 @@ class CategoryUpdateView(BaseSettingsUpdateView):
 class CategoryDeleteView(BaseSettingsDeleteView):
     model = Category
     success_url = reverse_lazy('wallet:category_list')
+class TransactionListCreateAPIView(generics.ListCreateAPIView):
+    """
+    API View para Listar (GET) e Criar (POST) Transações.
+    """
+    queryset = Transaction.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated] # Só permite usuários logados
+
+    def get_queryset(self):
+        """ Filtra para mostrar apenas transações do usuário logado. """
+        return Transaction.objects.filter(user=self.request.user).order_by('-date', '-id')
+
+    def perform_create(self, serializer):
+        """ Salva a transação com o usuário logado. """
+        serializer.save(user=self.request.user)
+        # (O Signal já vai cuidar de atualizar o saldo da conta)
+
+class AccountListAPIView(generics.ListAPIView):
+    """ API View para listar as Contas do usuário. """
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Account.objects.filter(user=self.request.user)
+
+class CategoryListAPIView(generics.ListAPIView):
+    """ API View para listar as Categorias do usuário. """
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
