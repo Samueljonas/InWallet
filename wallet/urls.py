@@ -1,32 +1,36 @@
 from django.urls import path, include
 from . import views
+from . import api_views
 
 app_name = 'wallet'
 
 # ----------------------------------------------------
-# (NOVO) URLs DA API (JSON)
+# REST API URLs (JSON for Android & React Web)
 # ----------------------------------------------------
-# Estas URLs serão usadas pelo React
 api_patterns = [
-    path('transaction/', views.TransactionListCreateAPIView.as_view(), name='api_transactions_list'),
-    
-    # (Adicionaremos as URLs de update/delete da API aqui depois)
-    # path('transactions/<int:pk>/', views.TransactionRetrieveUpdateDestroyAPIView.as_view(), name='api_transaction_detail'),
-    
-    # (Adicionaremos as APIs de Conta e Categoria aqui depois)
-    # path('accounts/', views.AccountListAPIView.as_view(), name='api_accounts_list'),
-    # path('categories/', views.CategoryListAPIView.as_view(), name='api_categories_list'),
+    # Dashboard
+    path('dashboard/', api_views.DashboardAPIView.as_view(), name='api_dashboard'),
+
+    # Transactions
+    path('transactions/', api_views.TransactionListCreateAPIView.as_view(), name='api_transactions_list'),
+    path('transactions/<int:pk>/', api_views.TransactionDetailAPIView.as_view(), name='api_transaction_detail'),
+
+    # Accounts
+    path('accounts/', api_views.AccountListCreateAPIView.as_view(), name='api_accounts_list'),
+    path('accounts/<int:pk>/', api_views.AccountDetailAPIView.as_view(), name='api_account_detail'),
+
+    # Categories
+    path('categories/', api_views.CategoryListCreateAPIView.as_view(), name='api_categories_list'),
+    path('categories/<int:pk>/', api_views.CategoryDetailAPIView.as_view(), name='api_category_detail'),
 ]
 
-
 # ----------------------------------------------------
-# URLs DOS TEMPLATES (HTML)
+# Django Template URLs (Legacy Web fallback)
 # ----------------------------------------------------
-# Estas são as URLs que você usa atualmente. Elas permanecem iguais.
 urlpatterns = [
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
-    
+
     # --- CRUD de Transações (HTML) ---
     path('transaction/expense/new/', views.ExpenseCreateView.as_view(), name='expense_create'),
     path('transaction/income/new/', views.IncomeCreateView.as_view(), name='income_create'),
@@ -46,7 +50,6 @@ urlpatterns = [
     path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_edit'),
     path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
 
-    # (NOVO) Namespace da API
-    # Inclui todas as nossas URLs da API sob o prefixo 'api/v1/'
+    # API Namespace
     path('api/v1/', include((api_patterns, 'api'), namespace='api')),
 ]
