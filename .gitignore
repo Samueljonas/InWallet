@@ -11,6 +11,12 @@ media/
 staticfiles/
 .env
 
+# Node & Frontend
+node_modules/
+.expo/
+web-build/
+dist/
+
 # Virtual env
 venv/
 .venv/

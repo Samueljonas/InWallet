@@ -1,6 +1,8 @@
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.db.models import ProtectedError
 from django.utils import timezone
 
 from .models import Transaction, Account, Category
@@ -39,11 +41,30 @@ class BaseUserFilteredDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 # --- TRANSACTION API ---
 
 class TransactionListCreateAPIView(BaseUserFilteredListCreateAPIView):
+    """
+    Lista com filtros opcionais: ?year=2026&month=10&type=expense
+    """
     model = Transaction
     serializer_class = TransactionSerializer
 
     def get_queryset(self):
-        return Transaction.objects.filter(user=self.request.user).order_by('-date', '-id')
+        qs = Transaction.objects.filter(user=self.request.user).select_related(
+            'category', 'account'
+        )
+        params = self.request.query_params
+
+        year = params.get('year')
+        month = params.get('month')
+        tx_type = params.get('type')
+
+        if year and year.isdigit():
+            qs = qs.filter(date__year=int(year))
+        if month and month.isdigit():
+            qs = qs.filter(date__month=int(month))
+        if tx_type in ('income', 'expense'):
+            qs = qs.filter(type=tx_type)
+
+        return qs.order_by('-date', '-id')
 
 
 class TransactionDetailAPIView(BaseUserFilteredDetailAPIView):
@@ -77,6 +98,15 @@ class CategoryListCreateAPIView(BaseUserFilteredListCreateAPIView):
 class CategoryDetailAPIView(BaseUserFilteredDetailAPIView):
     model = Category
     serializer_class = CategorySerializer
+
+    def perform_destroy(self, instance):
+        # Transaction.category usa on_delete=PROTECT: sem isso viraria erro 500.
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise ValidationError(
+                {'detail': 'Esta categoria possui transações e não pode ser excluída.'}
+            )
 
 
 # --- DASHBOARD API ---
