@@ -82,6 +82,8 @@ class DashboardService:
         monthly_summary = [
             {
                 'month': item['month_trunc'].strftime('%b/%Y') if item.get('month_trunc') else '',
+                'month_number': item['month_trunc'].month if item.get('month_trunc') else None,
+                'year': item['month_trunc'].year if item.get('month_trunc') else None,
                 'income': float(item['total_income']),
                 'expense': float(item['total_expense'])
             }

@@ -205,3 +205,53 @@ class WalletAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('total_balance', response.data)
         self.assertIn('monthly_net', response.data)
+
+
+class WalletApiImprovementsTests(APITestCase):
+    """Saldo inicial, categoria duplicada, exclusão protegida e filtros."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='u1', email='u1@example.com', password='Password123!')
+        self.client.force_authenticate(user=self.user)
+
+    def test_account_accepts_initial_balance_but_not_edit(self):
+        res = self.client.post('/api/v1/accounts/', {'name': 'Banco', 'balance': '250.00'}, format='json')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        acc_id = res.data['id']
+        self.assertEqual(Account.objects.get(pk=acc_id).balance, Decimal('250.00'))
+
+        res = self.client.patch(f'/api/v1/accounts/{acc_id}/', {'balance': '9999.00', 'name': 'Banco 2'}, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        acc = Account.objects.get(pk=acc_id)
+        self.assertEqual(acc.balance, Decimal('250.00'))
+        self.assertEqual(acc.name, 'Banco 2')
+
+    def test_duplicate_category_returns_400(self):
+        payload = {'name': 'Mercado', 'type': 'expense'}
+        self.assertEqual(self.client.post('/api/v1/categories/', payload, format='json').status_code, 201)
+        self.assertEqual(self.client.post('/api/v1/categories/', payload, format='json').status_code, 400)
+
+    def test_delete_category_with_transactions_returns_400(self):
+        acc = Account.objects.create(user=self.user, name='A', balance=Decimal('100.00'))
+        cat = Category.objects.create(user=self.user, name='C', type='expense')
+        TransactionService.create_transaction(
+            user=self.user, account=acc, category=cat, tx_type='expense',
+            amount=Decimal('10.00'), date=timezone.now().date(),
+        )
+        res = self.client.delete(f'/api/v1/categories/{cat.id}/')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_transaction_filters(self):
+        acc = Account.objects.create(user=self.user, name='A', balance=Decimal('100.00'))
+        exp = Category.objects.create(user=self.user, name='E', type='expense')
+        inc = Category.objects.create(user=self.user, name='I', type='income')
+        today = timezone.now().date()
+        TransactionService.create_transaction(
+            user=self.user, account=acc, category=exp, tx_type='expense', amount=Decimal('10.00'), date=today)
+        TransactionService.create_transaction(
+            user=self.user, account=acc, category=inc, tx_type='income', amount=Decimal('20.00'), date=today)
+
+        res = self.client.get('/api/v1/transactions/?type=income')
+        self.assertEqual(len(res.data['results']), 1)
+        res = self.client.get(f'/api/v1/transactions/?year={today.year}&month={today.month}')
+        self.assertEqual(len(res.data['results']), 2)

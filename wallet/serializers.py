@@ -7,11 +7,18 @@ class AccountSerializer(serializers.ModelSerializer):
     """
     Interface Segregation (ISP):
     Focused serializer for Account entities.
+
+    O saldo pode ser informado apenas na criação (saldo inicial). Depois disso,
+    só muda via transações, para não quebrar o ledger.
     """
     class Meta:
         model = Account
         fields = ['id', 'name', 'balance']
-        read_only_fields = ['balance']
+        extra_kwargs = {'balance': {'required': False}}
+
+    def update(self, instance, validated_data):
+        validated_data.pop('balance', None)
+        return super().update(instance, validated_data)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,6 +29,22 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'type']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            name = attrs.get('name', getattr(self.instance, 'name', None))
+            cat_type = attrs.get('type', getattr(self.instance, 'type', None))
+            duplicates = Category.objects.filter(
+                user=request.user, name__iexact=name, type=cat_type
+            )
+            if self.instance:
+                duplicates = duplicates.exclude(pk=self.instance.pk)
+            if duplicates.exists():
+                raise serializers.ValidationError(
+                    {'name': 'Você já possui uma categoria com esse nome e tipo.'}
+                )
+        return attrs
 
 
 class TransactionSerializer(serializers.ModelSerializer):
