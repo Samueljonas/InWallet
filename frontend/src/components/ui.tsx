@@ -10,9 +10,16 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors, maxContentWidth, radius, spacing, topInset } from "../theme";
+import {
+  colors,
+  maxContentWidth,
+  radius,
+  shadowCard,
+  spacing,
+  topInset,
+} from "../theme";
 
-/** Container que centraliza e limita a largura (bom na web, neutro no celular). */
+/** Container que centraliza e limita a largura (ótimo na web, neutro no celular). */
 export const Screen: React.FC<{
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -22,7 +29,7 @@ export const Screen: React.FC<{
   </View>
 );
 
-type Variant = "primary" | "success" | "danger" | "ghost";
+type Variant = "primary" | "success" | "danger" | "ghost" | "outline";
 
 export const Button: React.FC<{
   title: string;
@@ -46,7 +53,17 @@ export const Button: React.FC<{
     success: colors.income,
     danger: colors.expense,
     ghost: colors.surfaceAlt,
+    outline: "transparent",
   };
+
+  const textColors: Record<Variant, string> = {
+    primary: colors.white,
+    success: colors.white,
+    danger: colors.white,
+    ghost: colors.textMuted,
+    outline: colors.primary,
+  };
+
   const inactive = disabled || loading;
   return (
     <TouchableOpacity
@@ -57,14 +74,26 @@ export const Button: React.FC<{
         styles.button,
         small && styles.buttonSmall,
         { backgroundColor: bg[variant] },
-        inactive && { opacity: 0.6 },
+        variant === "outline" && {
+          borderWidth: 1.5,
+          borderColor: colors.primaryBorder,
+        },
+        inactive && { opacity: 0.55 },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={colors.white} />
+        <ActivityIndicator
+          color={variant === "ghost" || variant === "outline" ? colors.primary : colors.white}
+        />
       ) : (
-        <Text style={[styles.buttonText, small && { fontSize: 13 }]}>
+        <Text
+          style={[
+            styles.buttonText,
+            { color: textColors[variant] },
+            small && { fontSize: 13 },
+          ]}
+        >
           {title}
         </Text>
       )}
@@ -81,16 +110,26 @@ export const Field: React.FC<
   }
 > = ({ label, error, hint, secure, style, ...rest }) => {
   const [hidden, setHidden] = useState(true);
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={styles.fieldWrap}>
       {!!label && <Text style={styles.fieldLabel}>{label}</Text>}
       <View
-        style={[styles.inputRow, !!error && { borderColor: colors.expense }]}
+        style={[
+          styles.inputRow,
+          focused && styles.inputRowFocused,
+          !!error && styles.inputRowError,
+        ]}
       >
         <TextInput
           placeholderTextColor={colors.textFaint}
           style={[styles.input, style]}
           secureTextEntry={secure && hidden}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           {...rest}
         />
         {secure && (
@@ -109,15 +148,19 @@ export const Card: React.FC<{
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }> = ({ children, style }) => (
-  <View style={[styles.card, style]}>{children}</View>
+  <View style={[styles.card, shadowCard, style]}>{children}</View>
 );
 
-export const SectionTitle: React.FC<{ title: string; right?: ReactNode }> = ({
-  title,
-  right,
-}) => (
+export const SectionTitle: React.FC<{
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+}> = ({ title, subtitle, right }) => (
   <View style={styles.sectionRow}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+    <View>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {!!subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
+    </View>
     {right}
   </View>
 );
@@ -128,7 +171,9 @@ export const EmptyState: React.FC<{
   subtitle?: string;
 }> = ({ icon, title, subtitle }) => (
   <View style={styles.empty}>
-    <Text style={styles.emptyIcon}>{icon}</Text>
+    <View style={styles.emptyIconWrap}>
+      <Text style={styles.emptyIcon}>{icon}</Text>
+    </View>
     <Text style={styles.emptyTitle}>{title}</Text>
     {!!subtitle && <Text style={styles.emptySub}>{subtitle}</Text>}
   </View>
@@ -154,7 +199,8 @@ export const Chip: React.FC<{
   label: string;
   active?: boolean;
   onPress: () => void;
-}> = ({ label, active, onPress }) => (
+  count?: number;
+}> = ({ label, active, onPress, count }) => (
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.8}
@@ -163,7 +209,24 @@ export const Chip: React.FC<{
     <Text style={[styles.chipText, active && styles.chipTextActive]}>
       {label}
     </Text>
+    {count !== undefined && (
+      <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
+        <Text style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}>
+          {count}
+        </Text>
+      </View>
+    )}
   </TouchableOpacity>
+);
+
+export const Badge: React.FC<{
+  label: string;
+  color?: string;
+  bg?: string;
+}> = ({ label, color = colors.primary, bg = colors.primarySoft }) => (
+  <View style={[styles.badge, { backgroundColor: bg }]}>
+    <Text style={[styles.badgeText, { color }]}>{label}</Text>
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -182,27 +245,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
   },
-  buttonText: { color: colors.white, fontWeight: "700", fontSize: 15 },
+  buttonText: { fontWeight: "700", fontSize: 15 },
 
   fieldWrap: { marginTop: spacing.md },
   fieldLabel: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "600",
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: "700",
     marginBottom: 6,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.white,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
     paddingHorizontal: spacing.md,
   },
-  input: { flex: 1, color: colors.text, fontSize: 15, paddingVertical: 12 },
-  eye: { color: colors.primaryLight, fontSize: 12, fontWeight: "700" },
-  fieldError: { color: colors.expense, fontSize: 12, marginTop: 4 },
+  inputRowFocused: {
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
+  },
+  inputRowError: {
+    borderColor: colors.expense,
+  },
+  input: { flex: 1, color: "#0F172A", fontSize: 15, paddingVertical: 12 },
+  eye: { color: colors.primary, fontSize: 12, fontWeight: "700" },
+  fieldError: { color: colors.expense, fontSize: 12, marginTop: 4, fontWeight: "500" },
   fieldHint: { color: colors.textFaint, fontSize: 12, marginTop: 4 },
 
   card: {
@@ -220,25 +290,36 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "700" },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "800", letterSpacing: -0.3 },
+  sectionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
 
   empty: {
     alignItems: "center",
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
   },
-  emptyIcon: { fontSize: 38, marginBottom: spacing.sm },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+  },
+  emptyIcon: { fontSize: 30 },
   emptyTitle: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     textAlign: "center",
   },
   emptySub: {
     color: colors.textMuted,
     fontSize: 13,
-    marginTop: 4,
+    marginTop: 6,
     textAlign: "center",
+    lineHeight: 18,
   },
 
   header: {
@@ -249,21 +330,54 @@ const styles = StyleSheet.create({
     paddingTop: topInset,
     paddingBottom: spacing.md,
   },
-  headerTitle: { color: colors.text, fontSize: 22, fontWeight: "800" },
+  headerTitle: { color: colors.text, fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
   headerSub: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
 
   chip: {
-    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.lg,
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
   },
   chipActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primaryLight,
+    borderColor: colors.primaryDark,
   },
-  chipText: { color: colors.textMuted, fontSize: 13, fontWeight: "600" },
-  chipTextActive: { color: colors.white },
+  chipText: { color: colors.text, fontSize: 13, fontWeight: "600" },
+  chipTextActive: { color: colors.white, fontWeight: "700" },
+  chipBadge: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  chipBadgeActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+  },
+  chipBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.text,
+  },
+  chipBadgeTextActive: {
+    color: colors.white,
+  },
+
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    alignSelf: "flex-start",
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.text,
+  },
 });
+
