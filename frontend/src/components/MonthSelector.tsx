@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors, radius, spacing } from "../theme";
+import { colors, radius, shadowCard, spacing } from "../theme";
 import { MONTH_NAMES } from "../utils/format";
 
 export const MonthSelector: React.FC<{
@@ -17,7 +17,7 @@ export const MonthSelector: React.FC<{
   };
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, shadowCard]}>
       <TouchableOpacity
         style={styles.arrow}
         onPress={() => shift(-1)}
@@ -33,12 +33,14 @@ export const MonthSelector: React.FC<{
         <Text style={styles.label}>
           {MONTH_NAMES[month - 1]} {year}
         </Text>
-        {!isCurrent && (
+        {!isCurrent ? (
           <Text style={styles.hint}>toque para voltar ao mês atual</Text>
+        ) : (
+          <Text style={styles.currentBadge}>mês atual</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.arrow, isCurrent && { opacity: 0.3 }]}
+        style={[styles.arrow, isCurrent && { opacity: 0.25 }]}
         onPress={() => shift(1)}
         disabled={isCurrent}
         hitSlop={8}
@@ -53,25 +55,28 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
   },
   arrow: {
     width: 44,
-    height: 40,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: radius.sm,
   },
   arrowText: {
-    color: colors.primaryLight,
-    fontSize: 28,
-    fontWeight: "600",
-    lineHeight: 30,
+    color: colors.primary,
+    fontSize: 26,
+    fontWeight: "700",
+    lineHeight: 28,
   },
-  label: { color: colors.text, fontSize: 16, fontWeight: "700" },
-  hint: { color: colors.textFaint, fontSize: 10, marginTop: 2 },
+  label: { color: colors.text, fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
+  hint: { color: colors.primary, fontSize: 11, marginTop: 2, fontWeight: "600" },
+  currentBadge: { color: colors.textFaint, fontSize: 11, marginTop: 2 },
 });
+
