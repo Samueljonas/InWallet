@@ -13,8 +13,8 @@ import { Transaction } from "../types";
 import { Chip, EmptyState, Header, Screen } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
-import { colors, spacing } from "../theme";
-import { confirmAction, extractErrorMessage, notify } from "../utils/format";
+import { colors, radius, spacing } from "../theme";
+import { confirmAction, extractErrorMessage, formatCurrency, notify } from "../utils/format";
 
 type Filter = "all" | "expense" | "income";
 
@@ -59,7 +59,7 @@ export const TransactionsScreen: React.FC<Props> = ({
       setCount(res.data.count);
     } catch (err) {
       setError(
-        extractErrorMessage(err, "Não foi possível carregar as transações."),
+        extractErrorMessage(err, "Não foi possível carregar as transações.")
       );
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ export const TransactionsScreen: React.FC<Props> = ({
   async function handleDelete(tx: Transaction) {
     const ok = await confirmAction(
       "Excluir transação?",
-      `"${tx.description || tx.category_name}" será removida e o saldo da conta será ajustado.`,
+      `"${tx.description || tx.category_name}" será removida e o saldo da conta será ajustado automaticamente.`
     );
     if (!ok) return;
     try {
@@ -102,14 +102,20 @@ export const TransactionsScreen: React.FC<Props> = ({
     }
   }
 
+  // Cálculos do resumo local filtrado
+  const filteredTotal = items.reduce((acc, tx) => {
+    const val = Number(tx.amount);
+    return tx.type === "expense" ? acc - val : acc + val;
+  }, 0);
+
   return (
     <Screen>
       <Header
-        title="Transações"
+        title="Extrato Financeiro"
         subtitle={
           loading
-            ? "Carregando…"
-            : `${count} ${count === 1 ? "registro" : "registros"} no período`
+            ? "Carregando lançamentos…"
+            : `${count} ${count === 1 ? "registro encontrado" : "registros encontrados"}`
         }
       />
 
@@ -122,6 +128,7 @@ export const TransactionsScreen: React.FC<Props> = ({
             setMonth(m);
           }}
         />
+
         <View style={styles.chips}>
           <Chip
             label="Todas"
@@ -139,12 +146,42 @@ export const TransactionsScreen: React.FC<Props> = ({
             onPress={() => setFilter("income")}
           />
         </View>
+
+        {items.length > 0 && (
+          <View style={styles.summaryBar}>
+            <Text style={styles.summaryBarLabel}>
+              {filter === "expense"
+                ? "Total de despesas:"
+                : filter === "income"
+                ? "Total de receitas:"
+                : "Balanço do período:"}
+            </Text>
+            <Text
+              style={[
+                styles.summaryBarValue,
+                {
+                  color:
+                    filter === "expense"
+                      ? colors.expense
+                      : filter === "income"
+                      ? colors.income
+                      : filteredTotal >= 0
+                      ? colors.income
+                      : colors.expense,
+                },
+              ]}
+            >
+              {filter === "all" && filteredTotal > 0 ? "+" : ""}
+              {formatCurrency(Math.abs(filteredTotal))}
+            </Text>
+          </View>
+        )}
       </View>
 
       {loading && items.length === 0 ? (
         <ActivityIndicator
           size="large"
-          color={colors.primaryLight}
+          color={colors.primary}
           style={{ marginTop: spacing.xxl }}
         />
       ) : (
@@ -152,6 +189,7 @@ export const TransactionsScreen: React.FC<Props> = ({
           data={items}
           keyExtractor={(tx) => String(tx.id)}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TransactionRow
               tx={item}
@@ -166,20 +204,21 @@ export const TransactionsScreen: React.FC<Props> = ({
                 setRefreshing(true);
                 load();
               }}
-              tintColor={colors.primaryLight}
+              tintColor={colors.primary}
             />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
           ListEmptyComponent={
             error ? (
-              <View>
+              <View style={styles.errorBox}>
                 <Text style={styles.error}>{error}</Text>
                 <TouchableOpacity
                   onPress={() => {
                     setLoading(true);
                     load();
                   }}
+                  style={styles.retryBtn}
                 >
                   <Text style={styles.retry}>Tentar novamente</Text>
                 </TouchableOpacity>
@@ -187,15 +226,15 @@ export const TransactionsScreen: React.FC<Props> = ({
             ) : (
               <EmptyState
                 icon="🧾"
-                title="Nada por aqui"
-                subtitle="Nenhuma transação encontrada para este filtro e período."
+                title="Nenhum lançamento encontrado"
+                subtitle="Toque no botão + para adicionar sua primeira transação neste período."
               />
             )
           }
           ListFooterComponent={
             loadingMore ? (
               <ActivityIndicator
-                color={colors.primaryLight}
+                color={colors.primary}
                 style={{ margin: spacing.lg }}
               />
             ) : null
@@ -209,12 +248,39 @@ export const TransactionsScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
   filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   chips: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  error: { color: colors.expense, textAlign: "center", marginTop: spacing.xl },
-  retry: {
-    color: colors.primaryLight,
-    fontWeight: "700",
-    textAlign: "center",
+  summaryBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radius.md,
     marginTop: spacing.md,
+  },
+  summaryBarLabel: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  summaryBarValue: {
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 120 },
+  errorBox: { alignItems: "center", marginTop: spacing.xl },
+  error: { color: colors.expense, textAlign: "center", fontSize: 14 },
+  retryBtn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+  },
+  retry: {
+    color: colors.primary,
+    fontWeight: "700",
+    fontSize: 13,
   },
 });

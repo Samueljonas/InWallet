@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,17 +15,20 @@ import { Account, DashboardMetrics, Transaction } from "../types";
 import {
   Card,
   EmptyState,
-  Header,
   Screen,
   SectionTitle,
 } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
-import { chartPalette, colors, radius, spacing } from "../theme";
 import {
-  MONTH_SHORT,
+  CategoryDistributionChart,
+  MonthlyEvolutionChart,
+} from "../components/Charts";
+import { colors, radius, shadowCard, shadowHero, spacing, topInset } from "../theme";
+import {
   extractErrorMessage,
   formatCurrency,
+  notify,
 } from "../utils/format";
 
 interface Props {
@@ -80,28 +84,47 @@ export const DashboardScreen: React.FC<Props> = ({
     load();
   }, [load, refreshKey]);
 
-  const net = Number(metrics?.monthly_net ?? 0);
-  const categories = (metrics?.expenses_by_category ?? []).map((c) => ({
-    name: c.category,
-    total: Number(c.total),
-  }));
-  const categoriesTotal = categories.reduce((sum, c) => sum + c.total, 0);
+  async function handleDeleteRecent(tx: Transaction) {
+    try {
+      await api.delete(`/api/v1/transactions/${tx.id}/`);
+      load();
+    } catch (err) {
+      notify("Erro ao excluir", extractErrorMessage(err));
+    }
+  }
 
-  const summary = metrics?.monthly_summary ?? [];
-  const chartMax = Math.max(
-    1,
-    ...summary.map((s) => Math.max(s.income, s.expense)),
-  );
+  const net = Number(metrics?.monthly_net ?? 0);
+  const userInitials =
+    user?.first_name && user?.last_name
+      ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+      : (user?.username || "IW").slice(0, 2).toUpperCase();
 
   return (
     <Screen>
-      <Header
-        title={`Olá, ${user?.first_name || user?.username || "você"} 👋`}
-        subtitle="Veja como estão suas finanças"
-      />
+      {/* Top Header Clean & Frio */}
+      <View style={styles.topBar}>
+        <View style={styles.userInfo}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{userInitials}</Text>
+          </View>
+          <View>
+            <Text style={styles.greeting}>Olá, {user?.first_name || user?.username || "você"} 👋</Text>
+            <Text style={styles.statusSubtitle}>Gestão financeira inteligente</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.quickAddBtn}
+          onPress={onAdd}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.quickAddText}>+ Novo</Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -109,10 +132,11 @@ export const DashboardScreen: React.FC<Props> = ({
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.primaryLight}
+            tintColor={colors.primary}
           />
         }
       >
+        {/* Seletor de Mês */}
         <MonthSelector
           year={year}
           month={month}
@@ -125,7 +149,7 @@ export const DashboardScreen: React.FC<Props> = ({
         {loading && !metrics ? (
           <ActivityIndicator
             size="large"
-            color={colors.primaryLight}
+            color={colors.primary}
             style={{ marginTop: spacing.xxl }}
           />
         ) : error ? (
@@ -142,193 +166,160 @@ export const DashboardScreen: React.FC<Props> = ({
           </Card>
         ) : (
           <>
-            {/* Saldo */}
-            <Card style={styles.balanceCard}>
-              <Text style={styles.balanceLabel}>Saldo total</Text>
-              <Text style={styles.balanceValue}>
-                {formatCurrency(metrics?.total_balance)}
-              </Text>
+            {/* Card Hero de Saldo Total (Visual Fintech em Azul e Branco) */}
+            <View style={[styles.heroCard, shadowHero]}>
+              <View style={styles.heroTopRow}>
+                <View>
+                  <Text style={styles.heroLabel}>Saldo Total Acumulado</Text>
+                  <Text style={styles.heroBalance}>
+                    {formatCurrency(metrics?.total_balance)}
+                  </Text>
+                </View>
+                <View style={styles.chipMonth}>
+                  <Text style={styles.chipMonthText}>
+                    {month < 10 ? `0${month}` : month}/{year}
+                  </Text>
+                </View>
+              </View>
 
-              <View style={styles.balanceRow}>
-                <View style={styles.balanceCol}>
-                  <Text style={styles.miniLabel}>Receitas</Text>
-                  <Text style={[styles.miniValue, { color: colors.income }]}>
-                    {formatCurrency(metrics?.monthly_income)}
+              {/* Indicadores Mensais Integrados */}
+              <View style={styles.heroStatsRow}>
+                <View style={styles.heroStatItem}>
+                  <Text style={styles.heroStatLabel}>Receitas do Mês</Text>
+                  <Text style={[styles.heroStatValue, { color: "#34D399" }]}>
+                    + {formatCurrency(metrics?.monthly_income)}
                   </Text>
                 </View>
-                <View style={styles.divider} />
-                <View style={styles.balanceCol}>
-                  <Text style={styles.miniLabel}>Despesas</Text>
-                  <Text style={[styles.miniValue, { color: colors.expense }]}>
-                    {formatCurrency(metrics?.monthly_expense)}
+
+                <View style={styles.heroDivider} />
+
+                <View style={styles.heroStatItem}>
+                  <Text style={styles.heroStatLabel}>Despesas do Mês</Text>
+                  <Text style={[styles.heroStatValue, { color: "#F87171" }]}>
+                    - {formatCurrency(metrics?.monthly_expense)}
                   </Text>
                 </View>
-                <View style={styles.divider} />
-                <View style={styles.balanceCol}>
-                  <Text style={styles.miniLabel}>Resultado</Text>
+
+                <View style={styles.heroDivider} />
+
+                <View style={styles.heroStatItem}>
+                  <Text style={styles.heroStatLabel}>Resultado</Text>
                   <Text
                     style={[
-                      styles.miniValue,
-                      { color: net >= 0 ? colors.income : colors.expense },
+                      styles.heroStatValue,
+                      { color: net >= 0 ? "#6EE7B7" : "#FCA5A5" },
                     ]}
                   >
+                    {net >= 0 ? "+" : ""}
                     {formatCurrency(net)}
                   </Text>
                 </View>
               </View>
-            </Card>
+            </View>
 
-            {/* Contas */}
+            {/* Minhas Contas (Carrossel Horizontal Limpo) */}
             {accounts.length > 0 && (
-              <>
-                <SectionTitle title="Minhas contas" />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {accounts.map((acc) => (
-                    <View key={acc.id} style={styles.accountCard}>
-                      <Text style={styles.accountName} numberOfLines={1}>
-                        {acc.name}
-                      </Text>
+              <View style={styles.sectionWrap}>
+                <SectionTitle
+                  title="Minhas Contas"
+                  subtitle={`${accounts.length} ${accounts.length === 1 ? "conta ativa" : "contas ativas"}`}
+                />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.accountList}
+                >
+                  {accounts.map((acc, idx) => (
+                    <View key={acc.id} style={[styles.accountCard, shadowCard]}>
+                      <View style={styles.accountTop}>
+                        <View style={styles.accountIconWrap}>
+                          <Text style={styles.accountIcon}>
+                            {idx % 2 === 0 ? "🏛️" : "💳"}
+                          </Text>
+                        </View>
+                        <Text style={styles.accountName} numberOfLines={1}>
+                          {acc.name}
+                        </Text>
+                      </View>
                       <Text style={styles.accountBalance}>
                         {formatCurrency(acc.balance)}
                       </Text>
                     </View>
                   ))}
                 </ScrollView>
-              </>
+              </View>
             )}
 
-            {/* Gastos por categoria */}
-            <SectionTitle title="Para onde foi o dinheiro" />
-            <Card>
-              {categories.length === 0 ? (
-                <EmptyState
-                  icon="🎯"
-                  title="Sem despesas neste mês"
-                  subtitle="Quando você registrar gastos, eles aparecem aqui."
-                />
-              ) : (
-                categories.map((c, i) => {
-                  const pct =
-                    categoriesTotal > 0 ? (c.total / categoriesTotal) * 100 : 0;
-                  return (
-                    <View
-                      key={c.name}
-                      style={{
-                        marginBottom:
-                          i === categories.length - 1 ? 0 : spacing.lg,
-                      }}
-                    >
-                      <View style={styles.catHeader}>
-                        <Text style={styles.catName}>{c.name}</Text>
-                        <Text style={styles.catValue}>
-                          {formatCurrency(c.total)}{" "}
-                          <Text style={styles.catPct}>({pct.toFixed(0)}%)</Text>
-                        </Text>
-                      </View>
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              width: `${Math.max(pct, 2)}%`,
-                              backgroundColor:
-                                chartPalette[i % chartPalette.length],
-                            },
-                          ]}
-                        />
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </Card>
-
-            {/* Evolução no ano */}
-            {summary.length > 0 && (
-              <>
-                <SectionTitle title={`Evolução em ${year}`} />
-                <Card>
-                  <View style={styles.chart}>
-                    {summary.map((s) => (
-                      <View
-                        key={`${s.year}-${s.month_number}`}
-                        style={styles.chartCol}
-                      >
-                        <View style={styles.chartBars}>
-                          <View
-                            style={[
-                              styles.chartBar,
-                              {
-                                height: `${(s.income / chartMax) * 100}%`,
-                                backgroundColor: colors.income,
-                              },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.chartBar,
-                              {
-                                height: `${(s.expense / chartMax) * 100}%`,
-                                backgroundColor: colors.expense,
-                              },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.chartLabel}>
-                          {s.month_number
-                            ? MONTH_SHORT[s.month_number - 1]
-                            : ""}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                  <View style={styles.legend}>
-                    <Text style={[styles.legendItem, { color: colors.income }]}>
-                      ● Receitas
-                    </Text>
-                    <Text
-                      style={[styles.legendItem, { color: colors.expense }]}
-                    >
-                      ● Despesas
-                    </Text>
-                  </View>
-                </Card>
-              </>
-            )}
-
-            {/* Últimas transações */}
-            <SectionTitle
-              title="Últimas transações"
-              right={
-                recent.length > 0 ? (
-                  <TouchableOpacity onPress={onSeeAllTransactions}>
-                    <Text style={styles.seeAll}>Ver todas</Text>
-                  </TouchableOpacity>
-                ) : undefined
-              }
-            />
-            {recent.length === 0 ? (
+            {/* Gráfico 1: Distribuição de Despesas por Categoria */}
+            <View style={styles.sectionWrap}>
+              <SectionTitle
+                title="Para onde foi o dinheiro"
+                subtitle="Divisão percentual dos gastos por categoria"
+              />
               <Card>
-                <EmptyState
-                  icon="🧾"
-                  title="Nenhuma transação neste mês"
-                  subtitle="Toque no + para registrar sua primeira."
+                <CategoryDistributionChart
+                  categories={metrics?.expenses_by_category ?? []}
                 />
-                <TouchableOpacity onPress={onAdd}>
-                  <Text style={[styles.seeAll, { textAlign: "center" }]}>
-                    Registrar agora
-                  </Text>
-                </TouchableOpacity>
               </Card>
-            ) : (
-              recent.map((tx) => (
-                <TransactionRow
-                  key={tx.id}
-                  tx={tx}
-                  onPress={() => onEditTransaction(tx)}
+            </View>
+
+            {/* Gráfico 2: Evolução no Ano (Comparativo Mensal) */}
+            <View style={styles.sectionWrap}>
+              <SectionTitle
+                title={`Evolução em ${year}`}
+                subtitle="Comparativo histórico de receitas vs despesas"
+              />
+              <Card>
+                <MonthlyEvolutionChart
+                  summary={metrics?.monthly_summary ?? []}
+                  year={year}
+                  selectedMonth={month}
+                  onSelectMonth={(m) => setMonth(m)}
                 />
-              ))
-            )}
+              </Card>
+            </View>
+
+            {/* Últimas Transações */}
+            <View style={styles.sectionWrap}>
+              <SectionTitle
+                title="Últimas Transações"
+                subtitle="Lançamentos recentes deste mês"
+                right={
+                  recent.length > 0 ? (
+                    <TouchableOpacity
+                      onPress={onSeeAllTransactions}
+                      style={styles.seeAllBtn}
+                    >
+                      <Text style={styles.seeAllText}>Ver todas →</Text>
+                    </TouchableOpacity>
+                  ) : undefined
+                }
+              />
+              {recent.length === 0 ? (
+                <Card>
+                  <EmptyState
+                    icon="🧾"
+                    title="Nenhuma transação neste mês"
+                    subtitle="Clique no botão abaixo para adicionar sua primeira transação."
+                  />
+                  <TouchableOpacity
+                    style={styles.emptyAddBtn}
+                    onPress={onAdd}
+                  >
+                    <Text style={styles.emptyAddBtnText}>+ Adicionar Transação</Text>
+                  </TouchableOpacity>
+                </Card>
+              ) : (
+                recent.map((tx) => (
+                  <TransactionRow
+                    key={tx.id}
+                    tx={tx}
+                    onPress={() => onEditTransaction(tx)}
+                    onDelete={() => handleDeleteRecent(tx)}
+                  />
+                ))
+              )}
+            </View>
           </>
         )}
       </ScrollView>
@@ -337,110 +328,219 @@ export const DashboardScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  errorText: { color: colors.expense, fontSize: 14, textAlign: "center" },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingTop: topInset,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.bg,
+  },
+  userInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.white,
+    ...Platform.select({
+      web: {
+        boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
+      } as any,
+    }),
+  },
+  avatarText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  greeting: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+  statusSubtitle: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  quickAddBtn: {
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  quickAddText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 120,
+  },
+  errorText: {
+    color: colors.expense,
+    fontSize: 14,
+    textAlign: "center",
+  },
   retry: {
-    color: colors.primaryLight,
+    color: colors.primary,
     fontWeight: "700",
     textAlign: "center",
     marginTop: spacing.md,
   },
 
-  balanceCard: { marginTop: spacing.lg, backgroundColor: colors.surfaceAlt },
-  balanceLabel: {
-    color: colors.textMuted,
+  // Hero Card
+  heroCard: {
+    marginTop: spacing.md,
+    backgroundColor: "#1D4ED8", // Azul Real Profundo Fintech
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: "#3B82F6",
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  heroLabel: {
+    color: "#BFDBFE",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
-  balanceValue: {
-    color: colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    marginVertical: spacing.sm,
+  heroBalance: {
+    color: colors.white,
+    fontSize: 32,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+    marginTop: 4,
   },
-  balanceRow: {
+  chipMonth: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  chipMonthText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  heroStatsRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: spacing.sm,
+    justifyContent: "space-between",
+    marginTop: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: "rgba(255, 255, 255, 0.15)",
   },
-  balanceCol: { flex: 1 },
-  divider: {
+  heroStatItem: {
+    flex: 1,
+  },
+  heroStatLabel: {
+    color: "#DBEAFE",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  heroStatValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    marginTop: 2,
+    letterSpacing: -0.3,
+  },
+  heroDivider: {
     width: 1,
-    height: 32,
-    backgroundColor: colors.border,
+    height: 30,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     marginHorizontal: spacing.sm,
   },
-  miniLabel: { color: colors.textMuted, fontSize: 11 },
-  miniValue: { fontSize: 13, fontWeight: "700", marginTop: 2 },
 
+  sectionWrap: {
+    marginTop: spacing.md,
+  },
+
+  // Account Cards Carousel
+  accountList: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
   accountCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
-    marginRight: spacing.sm,
-    minWidth: 140,
+    minWidth: 155,
   },
-  accountName: { color: colors.textMuted, fontSize: 12 },
+  accountTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  accountIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accountIcon: {
+    fontSize: 14,
+  },
+  accountName: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
+  },
   accountBalance: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+
+  seeAllBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  seeAllText: {
+    color: colors.primary,
+    fontSize: 13,
     fontWeight: "700",
-    marginTop: 4,
   },
-
-  catHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  catName: { color: colors.text, fontSize: 14, fontWeight: "600" },
-  catValue: { color: colors.text, fontSize: 13, fontWeight: "600" },
-  catPct: { color: colors.textMuted, fontWeight: "400" },
-  barTrack: {
-    height: 8,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.pill,
-    overflow: "hidden",
-  },
-  barFill: { height: 8, borderRadius: radius.pill },
-
-  chart: { flexDirection: "row", alignItems: "flex-end", height: 130, gap: 6 },
-  chartCol: {
-    flex: 1,
+  emptyAddBtn: {
+    backgroundColor: colors.primarySoft,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
     alignItems: "center",
-    height: "100%",
-    justifyContent: "flex-end",
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
   },
-  chartBars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 2,
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
+  emptyAddBtnText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "700",
   },
-  chartBar: {
-    width: "40%",
-    maxWidth: 14,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
-    minHeight: 2,
-  },
-  chartLabel: { color: colors.textFaint, fontSize: 10, marginTop: 4 },
-  legend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: spacing.lg,
-    marginTop: spacing.md,
-  },
-  legendItem: { fontSize: 12, fontWeight: "600" },
-
-  seeAll: { color: colors.primaryLight, fontSize: 13, fontWeight: "700" },
 });

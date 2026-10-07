@@ -21,7 +21,7 @@ import {
   Screen,
   SectionTitle,
 } from "../components/ui";
-import { colors, radius, spacing } from "../theme";
+import { colors, radius, shadowCard, spacing } from "../theme";
 import {
   confirmAction,
   extractErrorMessage,
@@ -35,6 +35,8 @@ type Segment = "accounts" | "categories";
 interface RowProps {
   title: string;
   subtitle?: string;
+  badge?: string;
+  badgeColor?: string;
   editing: boolean;
   editValue: string;
   onEditChange: (v: string) => void;
@@ -45,7 +47,7 @@ interface RowProps {
 }
 
 const ItemRow: React.FC<RowProps> = (p) => (
-  <View style={styles.row}>
+  <View style={[styles.row, shadowCard]}>
     {p.editing ? (
       <View style={{ flex: 1 }}>
         <Field
@@ -70,6 +72,23 @@ const ItemRow: React.FC<RowProps> = (p) => (
           <Text style={styles.rowTitle}>{p.title}</Text>
           {!!p.subtitle && <Text style={styles.rowSub}>{p.subtitle}</Text>}
         </View>
+        {!!p.badge && (
+          <View
+            style={[
+              styles.rowBadge,
+              { backgroundColor: p.badgeColor ? `${p.badgeColor}18` : colors.surfaceAlt },
+            ]}
+          >
+            <Text
+              style={[
+                styles.rowBadgeText,
+                { color: p.badgeColor || colors.textMuted },
+              ]}
+            >
+              {p.badge}
+            </Text>
+          </View>
+        )}
         <TouchableOpacity
           onPress={p.onStartEdit}
           hitSlop={8}
@@ -194,7 +213,7 @@ export const ManageScreen: React.FC<{
   async function removeAccount(acc: Account) {
     const ok = await confirmAction(
       `Excluir conta "${acc.name}"?`,
-      "Atenção: todas as transações desta conta também serão excluídas. Essa ação não pode ser desfeita.",
+      "Atenção: todas as transações desta conta também serão excluídas do sistema. Essa ação não pode ser desfeita.",
     );
     if (!ok) return;
     try {
@@ -209,7 +228,7 @@ export const ManageScreen: React.FC<{
   async function removeCategory(cat: Category) {
     const ok = await confirmAction(
       `Excluir categoria "${cat.name}"?`,
-      "Essa ação não pode ser desfeita.",
+      "Essa ação não poderá ser desfeita se não houver transações vinculadas.",
     );
     if (!ok) return;
     try {
@@ -228,6 +247,8 @@ export const ManageScreen: React.FC<{
     <ItemRow
       key={cat.id}
       title={cat.name}
+      badge={cat.type === "expense" ? "Despesa" : "Receita"}
+      badgeColor={cat.type === "expense" ? colors.expense : colors.income}
       editing={editingKey === `cat-${cat.id}`}
       editValue={editValue}
       onEditChange={setEditValue}
@@ -241,12 +262,13 @@ export const ManageScreen: React.FC<{
   return (
     <Screen>
       <Header
-        title="Cadastros"
-        subtitle={user ? `Conectado como ${user.username}` : undefined}
+        title="Gestão de Cadastros"
+        subtitle={user ? `Usuário: ${user.username} (${user.email})` : undefined}
       />
 
       <ScrollView
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -255,14 +277,15 @@ export const ManageScreen: React.FC<{
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.primaryLight}
+            tintColor={colors.primary}
           />
         }
       >
         <View style={styles.segments}>
           <Chip
-            label="Contas"
+            label="Contas Bancárias"
             active={segment === "accounts"}
+            count={accounts.length}
             onPress={() => {
               setSegment("accounts");
               setEditingKey(null);
@@ -271,6 +294,7 @@ export const ManageScreen: React.FC<{
           <Chip
             label="Categorias"
             active={segment === "categories"}
+            count={categories.length}
             onPress={() => {
               setSegment("categories");
               setEditingKey(null);
@@ -281,18 +305,21 @@ export const ManageScreen: React.FC<{
         {loading ? (
           <ActivityIndicator
             size="large"
-            color={colors.primaryLight}
+            color={colors.primary}
             style={{ marginTop: spacing.xxl }}
           />
         ) : segment === "accounts" ? (
           <>
-            <SectionTitle title="Suas contas" />
+            <SectionTitle
+              title="Suas Contas"
+              subtitle="Gerencie ou edite os nomes das suas carteiras e contas"
+            />
             {accounts.length === 0 ? (
               <Card>
                 <EmptyState
                   icon="🏦"
-                  title="Nenhuma conta ainda"
-                  subtitle="Crie sua primeira conta abaixo."
+                  title="Nenhuma conta cadastrada"
+                  subtitle="Cadastre sua primeira conta ou carteira abaixo."
                 />
               </Card>
             ) : (
@@ -300,7 +327,7 @@ export const ManageScreen: React.FC<{
                 <ItemRow
                   key={acc.id}
                   title={acc.name}
-                  subtitle={formatCurrency(acc.balance)}
+                  subtitle={`Saldo atual: ${formatCurrency(acc.balance)}`}
                   editing={editingKey === `acc-${acc.id}`}
                   editValue={editValue}
                   onEditChange={setEditValue}
@@ -312,24 +339,27 @@ export const ManageScreen: React.FC<{
               ))
             )}
 
-            <SectionTitle title="Nova conta" />
+            <SectionTitle
+              title="Cadastrar Nova Conta"
+              subtitle="Adicione uma nova instituição financeira ou carteira"
+            />
             <Card>
               <Field
-                label="Nome"
+                label="Nome da Conta"
                 value={newAccName}
                 onChangeText={setNewAccName}
-                placeholder="Ex: Nubank, Carteira"
+                placeholder="Ex: Nubank, Inter, Itaú, Carteira"
               />
               <Field
-                label="Saldo inicial (opcional)"
+                label="Saldo Inicial (opcional)"
                 value={newAccBalance}
                 onChangeText={setNewAccBalance}
                 placeholder="0,00"
                 keyboardType="decimal-pad"
-                hint="O saldo só muda depois por meio de transações."
+                hint="O saldo inicial é definido apenas na criação da conta."
               />
               <Button
-                title="Adicionar conta"
+                title="Cadastrar Conta"
                 onPress={addAccount}
                 loading={saving}
                 style={{ marginTop: spacing.lg }}
@@ -338,33 +368,42 @@ export const ManageScreen: React.FC<{
           </>
         ) : (
           <>
-            <SectionTitle title="Despesas" />
+            <SectionTitle
+              title="Categorias de Despesa"
+              subtitle={`${expenseCats.length} categorias cadastradas`}
+            />
             {expenseCats.length === 0 ? (
               <Card>
-                <Text style={styles.muted}>Nenhuma categoria de despesa.</Text>
+                <Text style={styles.muted}>Nenhuma categoria de despesa criada.</Text>
               </Card>
             ) : (
               expenseCats.map(renderCategory)
             )}
 
-            <SectionTitle title="Receitas" />
+            <SectionTitle
+              title="Categorias de Receita"
+              subtitle={`${incomeCats.length} categorias cadastradas`}
+            />
             {incomeCats.length === 0 ? (
               <Card>
-                <Text style={styles.muted}>Nenhuma categoria de receita.</Text>
+                <Text style={styles.muted}>Nenhuma categoria de receita criada.</Text>
               </Card>
             ) : (
               incomeCats.map(renderCategory)
             )}
 
-            <SectionTitle title="Nova categoria" />
+            <SectionTitle
+              title="Cadastrar Nova Categoria"
+              subtitle="Crie categorias personalizadas para organizar suas finanças"
+            />
             <Card>
               <Field
-                label="Nome"
+                label="Nome da Categoria"
                 value={newCatName}
                 onChangeText={setNewCatName}
-                placeholder="Ex: Mercado, Salário"
+                placeholder="Ex: Supermercado, Aluguel, Investimentos"
               />
-              <View style={styles.segments}>
+              <View style={styles.catTypeChips}>
                 <Chip
                   label="Despesa"
                   active={newCatType === "expense"}
@@ -377,7 +416,7 @@ export const ManageScreen: React.FC<{
                 />
               </View>
               <Button
-                title="Adicionar categoria"
+                title="Cadastrar Categoria"
                 onPress={addCategory}
                 loading={saving}
                 style={{ marginTop: spacing.lg }}
@@ -386,34 +425,91 @@ export const ManageScreen: React.FC<{
           </>
         )}
 
-        <Button
-          title="Sair da conta"
-          variant="ghost"
-          onPress={logout}
-          style={{ marginTop: spacing.xxl }}
-        />
+        <View style={styles.logoutWrap}>
+          <Button
+            title="Sair da Conta (Logout)"
+            variant="outline"
+            onPress={logout}
+            style={styles.logoutBtn}
+          />
+        </View>
       </ScrollView>
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  segments: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 120,
+  },
+  segments: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  catTypeChips: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  rowTitle: { color: colors.text, fontSize: 15, fontWeight: "600" },
-  rowSub: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  iconBtn: { padding: spacing.sm },
-  icon: { fontSize: 16 },
-  editActions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  muted: { color: colors.textMuted, fontSize: 13, textAlign: "center" },
+  rowTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  rowSub: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  rowBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    marginRight: spacing.sm,
+  },
+  rowBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  iconBtn: {
+    padding: spacing.sm,
+    marginLeft: 4,
+  },
+  icon: {
+    fontSize: 16,
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  muted: {
+    color: colors.textMuted,
+    fontSize: 13,
+    textAlign: "center",
+    paddingVertical: spacing.sm,
+  },
+  logoutWrap: {
+    marginTop: spacing.xxl,
+    alignItems: "center",
+  },
+  logoutBtn: {
+    width: "100%",
+    borderColor: colors.borderStrong,
+  },
 });

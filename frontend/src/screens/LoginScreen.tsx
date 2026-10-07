@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
-import { colors, spacing } from "../theme";
+import { colors, radius, shadowCard, spacing } from "../theme";
 import { extractErrorMessage } from "../utils/format";
 
 export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
@@ -35,7 +35,7 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
       setError(
         err?.response?.status === 401
           ? "Usuário ou senha incorretos."
-          : extractErrorMessage(err, "Não foi possível entrar."),
+          : extractErrorMessage(err, "Não foi possível entrar no servidor."),
       );
     } finally {
       setLoading(false);
@@ -50,22 +50,31 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
       >
         <ScrollView
           contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Identidade Visual Clean */}
           <View style={styles.brand}>
-            <Text style={styles.logo}>💳</Text>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoIcon}>💳</Text>
+            </View>
             <Text style={styles.title}>InWallet</Text>
             <Text style={styles.subtitle}>
-              Suas finanças, simples e organizadas.
+              Gestão financeira pessoal limpa, moderna e inteligente
             </Text>
           </View>
 
-          <Card>
-            {!!error && <Text style={styles.error}>{error}</Text>}
+          <Card style={styles.loginCard}>
+            <Text style={styles.cardHeader}>Acessar Conta</Text>
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.error}>{error}</Text>
+              </View>
+            )}
 
             <Field
-              label="Usuário"
-              placeholder="seu_usuario"
+              label="Nome de usuário"
+              placeholder="Ex: samuel"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
@@ -74,7 +83,7 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
             />
             <Field
               label="Senha"
-              placeholder="Sua senha"
+              placeholder="Sua senha secreta"
               value={password}
               onChangeText={setPassword}
               secure
@@ -83,7 +92,7 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
             />
 
             <Button
-              title="Entrar"
+              title="Entrar no InWallet"
               onPress={handleLogin}
               loading={loading}
               style={{ marginTop: spacing.xl }}
@@ -93,9 +102,11 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
           <TouchableOpacity
             style={styles.switchBtn}
             onPress={onNavigateToRegister}
+            activeOpacity={0.7}
           >
             <Text style={styles.switchText}>
-              Não tem conta? <Text style={styles.switchBold}>Cadastre-se</Text>
+              Ainda não tem conta?{" "}
+              <Text style={styles.switchBold}>Cadastre-se gratuitamente</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -105,25 +116,79 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
 };
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
-  brand: { alignItems: "center", marginBottom: spacing.xl },
-  logo: { fontSize: 52 },
-  title: {
-    color: colors.primaryLight,
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+  },
+  brand: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  logoBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: colors.primaryBorder,
+    marginBottom: spacing.sm,
+  },
+  logoIcon: {
     fontSize: 32,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: "center",
+    maxWidth: 280,
+    lineHeight: 18,
+  },
+  loginCard: {
+    padding: spacing.xl,
+  },
+  cardHeader: {
+    color: colors.text,
+    fontSize: 18,
     fontWeight: "800",
+    letterSpacing: -0.3,
+    marginBottom: spacing.xs,
+  },
+  errorBox: {
+    backgroundColor: colors.expenseBg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.expenseBorder,
+    padding: spacing.md,
     marginTop: spacing.sm,
   },
-  subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
   error: {
     color: colors.expense,
-    backgroundColor: colors.expenseBg,
-    padding: spacing.md,
-    borderRadius: 8,
     fontSize: 13,
-    overflow: "hidden",
+    fontWeight: "600",
+    textAlign: "center",
   },
-  switchBtn: { alignItems: "center", marginTop: spacing.xl },
-  switchText: { color: colors.textMuted, fontSize: 14 },
-  switchBold: { color: colors.primaryLight, fontWeight: "700" },
+  switchBtn: {
+    alignItems: "center",
+    marginTop: spacing.xl,
+    paddingVertical: spacing.sm,
+  },
+  switchText: {
+    color: colors.textMuted,
+    fontSize: 14,
+  },
+  switchBold: {
+    color: colors.primary,
+    fontWeight: "700",
+  },
 });

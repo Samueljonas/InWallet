@@ -6,13 +6,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { api, fetchAll } from "../api/client";
 import { Account, Category, Transaction } from "../types";
 import { Button, Card, Chip, Field, Header, Screen } from "../components/ui";
-import { colors, radius, spacing } from "../theme";
+import { colors, radius, shadowCard, spacing } from "../theme";
 import {
   brDateToIso,
   confirmAction,
@@ -58,10 +59,11 @@ export const NewTransactionScreen: React.FC<Props> = ({
 
   const [loadingData, setLoadingData] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState("");
 
-  // criação rápida
+  // Criação rápida de conta e categoria inline
   const [showNewAccount, setShowNewAccount] = useState(false);
   const [newAccountName, setNewAccountName] = useState("");
   const [newAccountBalance, setNewAccountBalance] = useState("");
@@ -97,7 +99,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
     })();
   }, []);
 
-  // mantém a categoria selecionada coerente com o tipo (despesa/receita)
+  // Mantém categoria selecionada coerente com o tipo (despesa/receita)
   useEffect(() => {
     if (loadingData) return;
     if (!visibleCategories.some((c) => c.id === categoryId)) {
@@ -174,6 +176,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
     const payload = {
       account: accountId,
       category: categoryId,
+      type,
       amount: value!.toFixed(2),
       date: iso,
       description: description.trim(),
@@ -184,7 +187,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
       if (editing) {
         await api.patch(`/api/v1/transactions/${editing.id}/`, payload);
       } else {
-        await api.post("/api/v1/transactions/", { ...payload, type });
+        await api.post("/api/v1/transactions/", payload);
       }
       onSaved();
     } catch (err) {
@@ -207,14 +210,17 @@ export const NewTransactionScreen: React.FC<Props> = ({
     if (!editing) return;
     const ok = await confirmAction(
       "Excluir transação?",
-      "O saldo da conta será ajustado.",
+      "O lançamento será apagado e o saldo da conta será recalculado automaticamente.",
     );
     if (!ok) return;
     try {
+      setDeleting(true);
       await api.delete(`/api/v1/transactions/${editing.id}/`);
       onSaved();
     } catch (err) {
       notify("Erro ao excluir", extractErrorMessage(err));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -225,9 +231,14 @@ export const NewTransactionScreen: React.FC<Props> = ({
         style={{ flex: 1 }}
       >
         <Header
-          title={editing ? "Editar transação" : "Nova transação"}
+          title={editing ? "Editar Lançamento" : "Nova Transação"}
+          subtitle={
+            editing
+              ? "Modifique os dados ou exclua o lançamento"
+              : "Preencha os dados da sua despesa ou receita"
+          }
           left={
-            <TouchableOpacity onPress={onGoBack} hitSlop={10}>
+            <TouchableOpacity onPress={onGoBack} hitSlop={10} style={styles.backBtn}>
               <Text style={styles.back}>←</Text>
             </TouchableOpacity>
           }
@@ -235,43 +246,47 @@ export const NewTransactionScreen: React.FC<Props> = ({
 
         <ScrollView
           contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Tipo */}
-          {editing ? (
-            <Text style={[styles.lockedType, { color: accent }]}>
-              {isExpense ? "↓ Despesa" : "↑ Receita"}
-            </Text>
-          ) : (
-            <View style={styles.typeSwitch}>
-              <TouchableOpacity
+          {/* Seletor de Tipo (Despesa vs Receita) */}
+          <View style={[styles.typeSwitch, shadowCard]}>
+            <TouchableOpacity
+              style={[
+                styles.typeBtn,
+                isExpense ? styles.typeBtnExpenseActive : styles.typeBtnInactive,
+              ]}
+              onPress={() => setType("expense")}
+              activeOpacity={0.8}
+            >
+              <Text
                 style={[
-                  styles.typeBtn,
-                  isExpense && { backgroundColor: colors.expense },
+                  styles.typeText,
+                  isExpense ? styles.typeTextActive : styles.typeTextInactive,
                 ]}
-                onPress={() => setType("expense")}
               >
-                <Text
-                  style={[styles.typeText, isExpense && styles.typeTextActive]}
-                >
-                  ↓ Despesa
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+                ↓ Despesa
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.typeBtn,
+                !isExpense ? styles.typeBtnIncomeActive : styles.typeBtnInactive,
+              ]}
+              onPress={() => setType("income")}
+              activeOpacity={0.8}
+            >
+              <Text
                 style={[
-                  styles.typeBtn,
-                  !isExpense && { backgroundColor: colors.income },
+                  styles.typeText,
+                  !isExpense ? styles.typeTextActive : styles.typeTextInactive,
                 ]}
-                onPress={() => setType("income")}
               >
-                <Text
-                  style={[styles.typeText, !isExpense && styles.typeTextActive]}
-                >
-                  ↑ Receita
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                ↑ Receita
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {!!generalError && (
             <Text style={styles.generalError}>{generalError}</Text>
@@ -279,75 +294,84 @@ export const NewTransactionScreen: React.FC<Props> = ({
 
           {loadingData ? (
             <ActivityIndicator
-              color={colors.primaryLight}
+              color={colors.primary}
               style={{ marginTop: spacing.xl }}
             />
           ) : (
             <>
-              {/* Valor */}
-              <Card style={{ marginTop: spacing.lg }}>
-                <Text style={styles.amountLabel}>Valor</Text>
+              {/* Card de Valor de Alto Destaque */}
+              <View style={[styles.amountCard, shadowCard]}>
+                <Text style={styles.amountLabel}>Valor do lançamento</Text>
                 <View style={styles.amountRow}>
                   <Text style={[styles.currency, { color: accent }]}>R$</Text>
-                  <Field
+                  <TextInput
                     value={amount}
                     onChangeText={setAmount}
                     placeholder="0,00"
+                    placeholderTextColor={colors.textFaint}
                     keyboardType="decimal-pad"
                     style={[styles.amountInput, { color: accent }]}
-                    error={errors.amount}
+                    selectionColor={accent}
+                    cursorColor={accent}
                     autoFocus={!editing}
                   />
                 </View>
-              </Card>
+                {!!errors.amount && (
+                  <Text style={styles.fieldError}>{errors.amount}</Text>
+                )}
+              </View>
 
+              {/* Descrição */}
               <Field
-                label="Descrição"
+                label="Descrição / Motivo"
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Ex: Almoço, Salário, Uber..."
+                placeholder="Ex: Supermercado, Aluguel, Salário, Freela..."
               />
 
-              {/* Data */}
+              {/* Data com Atalhos Rápidos */}
               <Field
-                label="Data"
+                label="Data da transação"
                 value={dateText}
                 onChangeText={setDateText}
                 placeholder="dd/mm/aaaa"
                 keyboardType="numbers-and-punctuation"
                 error={errors.date}
               />
-              <View style={styles.chips}>
+              <View style={styles.quickDateRow}>
                 <Chip label="Hoje" onPress={() => setDay(0)} />
                 <Chip label="Ontem" onPress={() => setDay(-1)} />
+                <Chip label="Anteontem" onPress={() => setDay(-2)} />
               </View>
 
-              {/* Conta */}
-              <Text style={styles.sectionLabel}>Conta</Text>
+              {/* Seleção de Conta Bancária */}
+              <Text style={styles.sectionLabel}>Conta vinculada</Text>
               <View style={styles.chips}>
                 {accounts.map((acc) => (
                   <Chip
                     key={acc.id}
-                    label={`${acc.name} • ${formatCurrency(acc.balance)}`}
+                    label={`${acc.name} (${formatCurrency(acc.balance)})`}
                     active={accountId === acc.id}
                     onPress={() => setAccountId(acc.id)}
                   />
                 ))}
                 <Chip
-                  label={showNewAccount ? "× Cancelar" : "+ Nova conta"}
+                  label={showNewAccount ? "✕ Fechar" : "+ Nova conta"}
                   onPress={() => setShowNewAccount((s) => !s)}
                 />
               </View>
               {!!errors.account && (
                 <Text style={styles.fieldError}>{errors.account}</Text>
               )}
+
               {showNewAccount && (
                 <Card style={styles.quickCard}>
+                  <Text style={styles.quickCardTitle}>Cadastrar Nova Conta</Text>
                   <Field
                     label="Nome da conta"
                     value={newAccountName}
                     onChangeText={setNewAccountName}
-                    placeholder="Ex: Nubank, Carteira"
+                    placeholder="Ex: Nubank, Inter, Carteira Física"
                   />
                   <Field
                     label="Saldo inicial (opcional)"
@@ -357,7 +381,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                     keyboardType="decimal-pad"
                   />
                   <Button
-                    title="Criar conta"
+                    title="Criar e Vincular Conta"
                     small
                     loading={creating}
                     onPress={createAccount}
@@ -366,7 +390,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                 </Card>
               )}
 
-              {/* Categoria */}
+              {/* Seleção de Categoria */}
               <Text style={styles.sectionLabel}>Categoria</Text>
               <View style={styles.chips}>
                 {visibleCategories.map((cat) => (
@@ -378,27 +402,31 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   />
                 ))}
                 <Chip
-                  label={showNewCategory ? "× Cancelar" : "+ Nova categoria"}
+                  label={showNewCategory ? "✕ Fechar" : "+ Nova categoria"}
                   onPress={() => setShowNewCategory((s) => !s)}
                 />
               </View>
               {!!errors.category && (
                 <Text style={styles.fieldError}>{errors.category}</Text>
               )}
+
               {showNewCategory && (
                 <Card style={styles.quickCard}>
+                  <Text style={styles.quickCardTitle}>
+                    Nova Categoria de {isExpense ? "Despesa" : "Receita"}
+                  </Text>
                   <Field
-                    label={`Nova categoria de ${isExpense ? "despesa" : "receita"}`}
+                    label="Nome da categoria"
                     value={newCategoryName}
                     onChangeText={setNewCategoryName}
                     placeholder={
                       isExpense
-                        ? "Ex: Mercado, Transporte"
-                        : "Ex: Salário, Freelance"
+                        ? "Ex: Supermercado, Transporte, Saúde"
+                        : "Ex: Salário, Rendimentos, Pix"
                     }
                   />
                   <Button
-                    title="Criar categoria"
+                    title="Criar e Selecionar Categoria"
                     small
                     loading={creating}
                     onPress={createCategory}
@@ -407,19 +435,25 @@ export const NewTransactionScreen: React.FC<Props> = ({
                 </Card>
               )}
 
+              {/* Botões Principais de Ação */}
               <Button
-                title={editing ? "Salvar alterações" : "Salvar transação"}
-                variant={isExpense ? "danger" : "success"}
+                title={editing ? "Salvar Alterações" : "Adicionar Lançamento"}
+                variant={isExpense ? "danger" : "primary"}
                 onPress={handleSubmit}
                 loading={saving}
                 style={{ marginTop: spacing.xl }}
               />
+
               {editing && (
                 <Button
-                  title="Excluir transação"
-                  variant="ghost"
+                  title="Excluir Transação"
+                  variant="outline"
+                  loading={deleting}
                   onPress={handleDelete}
-                  style={{ marginTop: spacing.md }}
+                  style={{
+                    marginTop: spacing.md,
+                    borderColor: colors.expenseBorder,
+                  }}
                 />
               )}
             </>
@@ -431,57 +465,132 @@ export const NewTransactionScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  back: { color: colors.primaryLight, fontSize: 28, fontWeight: "600" },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 120,
+  },
+  backBtn: {
+    padding: 6,
+    borderRadius: radius.pill,
+  },
+  back: {
+    color: colors.primary,
+    fontSize: 26,
+    fontWeight: "700",
+  },
   typeSwitch: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill,
     padding: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    marginTop: spacing.sm,
   },
   typeBtn: {
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
   },
-  typeText: { color: colors.textMuted, fontWeight: "700", fontSize: 14 },
-  typeTextActive: { color: colors.white },
-  lockedType: { fontSize: 16, fontWeight: "800" },
+  typeBtnExpenseActive: {
+    backgroundColor: colors.expense,
+  },
+  typeBtnIncomeActive: {
+    backgroundColor: colors.income,
+  },
+  typeBtnInactive: {
+    backgroundColor: "transparent",
+  },
+  typeText: {
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  typeTextActive: {
+    color: colors.white,
+  },
+  typeTextInactive: {
+    color: "#334155", // Slate 700 - explicitly dark and readable
+  },
   generalError: {
     color: colors.expense,
     backgroundColor: colors.expenseBg,
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: radius.md,
     fontSize: 13,
     marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.expenseBorder,
     overflow: "hidden",
   },
+
+  amountCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    marginTop: spacing.lg,
+  },
   amountLabel: {
-    color: colors.textMuted,
+    color: "#334155",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
-  amountRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  currency: { fontSize: 24, fontWeight: "800", marginTop: spacing.md },
-  amountInput: { fontSize: 28, fontWeight: "800" },
+  amountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  currency: {
+    fontSize: 28,
+    fontWeight: "900",
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    paddingVertical: 4,
+  },
+
+  quickDateRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
   sectionLabel: {
     color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     marginTop: spacing.xl,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
-  quickCard: { marginTop: spacing.md, backgroundColor: colors.surfaceAlt },
-  fieldError: { color: colors.expense, fontSize: 12, marginTop: 4 },
+  quickCard: {
+    marginTop: spacing.md,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quickCardTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+  },
+  fieldError: {
+    color: colors.expense,
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "600",
+  },
 });
