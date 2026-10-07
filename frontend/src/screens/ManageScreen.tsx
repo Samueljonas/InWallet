@@ -26,6 +26,7 @@ import {
   confirmAction,
   extractErrorMessage,
   formatCurrency,
+  formatCurrencyInput,
   notify,
   parseAmount,
 } from "../utils/format";
@@ -260,7 +261,7 @@ export const ManageScreen: React.FC<{
   );
 
   return (
-    <Screen>
+    <Screen fluid>
       <Header
         title="Gestão de Cadastros"
         subtitle={user ? `Usuário: ${user.username} (${user.email})` : undefined}
@@ -353,9 +354,9 @@ export const ManageScreen: React.FC<{
               <Field
                 label="Saldo Inicial (opcional)"
                 value={newAccBalance}
-                onChangeText={setNewAccBalance}
+                onChangeText={(val) => setNewAccBalance(formatCurrencyInput(val))}
                 placeholder="0,00"
-                keyboardType="decimal-pad"
+                keyboardType="number-pad"
                 hint="O saldo inicial é definido apenas na criação da conta."
               />
               <Button
