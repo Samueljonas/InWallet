@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Appearance, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
+
+// Força o tema claro em todo o app (evita que o dark mode do Android deixe fontes brancas em fundo branco)
+Appearance.setColorScheme?.("light");
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { RegisterScreen } from "./src/screens/RegisterScreen";
 import { DashboardScreen } from "./src/screens/DashboardScreen";
@@ -84,7 +87,7 @@ function MainNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <MainNavigator />
     </AuthProvider>
   );

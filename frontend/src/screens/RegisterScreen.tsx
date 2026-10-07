@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
-import { colors, spacing } from "../theme";
+import { colors, radius, spacing } from "../theme";
 import { extractErrorMessage, extractFieldErrors } from "../utils/format";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,8 +36,8 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
     if (password.length < 8)
       e.password = "A senha precisa ter pelo menos 8 caracteres.";
     else if (/^\d+$/.test(password))
-      e.password = "A senha não pode ter apenas números.";
-    if (confirm !== password) e.confirm = "As senhas não coincidem.";
+      e.password = "A senha não pode conter apenas números.";
+    if (confirm !== password) e.confirm = "As senhas digitadas não coincidem.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -71,23 +71,30 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
       >
         <ScrollView
           contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.brand}>
-            <Text style={styles.title}>Criar conta</Text>
-            <Text style={styles.subtitle}>Leva menos de um minuto.</Text>
+            <Text style={styles.title}>Criar Nova Conta</Text>
+            <Text style={styles.subtitle}>
+              Comece a controlar suas receitas e despesas em segundos
+            </Text>
           </View>
 
-          <Card>
-            {!!generalError && <Text style={styles.error}>{generalError}</Text>}
+          <Card style={styles.registerCard}>
+            {!!generalError && (
+              <View style={styles.errorBox}>
+                <Text style={styles.error}>{generalError}</Text>
+              </View>
+            )}
 
             <Field
-              label="Usuário *"
+              label="Nome de usuário *"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="seu_usuario"
+              placeholder="Ex: samuel_silva"
               error={errors.username}
             />
             <Field
@@ -96,36 +103,36 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
-              placeholder="nome@email.com"
+              placeholder="seuemail@exemplo.com"
               error={errors.email}
             />
             <Field
-              label="Nome (opcional)"
+              label="Primeiro nome (opcional)"
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Como quer ser chamado?"
+              placeholder="Como prefere ser chamado?"
             />
             <Field
               label="Senha *"
               value={password}
               onChangeText={setPassword}
               secure
-              placeholder="Mínimo 8 caracteres"
+              placeholder="Mínimo de 8 caracteres"
               error={errors.password}
-              hint="Use pelo menos 8 caracteres, com letras e números."
+              hint="Use pelo menos 8 dígitos combinando letras e números."
             />
             <Field
               label="Confirmar senha *"
               value={confirm}
               onChangeText={setConfirm}
               secure
-              placeholder="Repita a senha"
+              placeholder="Repita sua senha"
               error={errors.confirm}
               onSubmitEditing={handleRegister}
             />
 
             <Button
-              title="Criar conta e entrar"
+              title="Cadastrar e Acessar"
               onPress={handleRegister}
               loading={loading}
               style={{ marginTop: spacing.xl }}
@@ -135,9 +142,10 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
           <TouchableOpacity
             style={styles.switchBtn}
             onPress={onNavigateToLogin}
+            activeOpacity={0.7}
           >
             <Text style={styles.switchText}>
-              Já tem conta? <Text style={styles.switchBold}>Entrar</Text>
+              Já possui uma conta? <Text style={styles.switchBold}>Fazer login</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -147,19 +155,57 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
 };
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
-  brand: { alignItems: "center", marginBottom: spacing.xl },
-  title: { color: colors.primaryLight, fontSize: 28, fontWeight: "800" },
-  subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+  },
+  brand: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  registerCard: {
+    padding: spacing.xl,
+  },
+  errorBox: {
+    backgroundColor: colors.expenseBg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.expenseBorder,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
   error: {
     color: colors.expense,
-    backgroundColor: colors.expenseBg,
-    padding: spacing.md,
-    borderRadius: 8,
     fontSize: 13,
-    overflow: "hidden",
+    fontWeight: "600",
+    textAlign: "center",
   },
-  switchBtn: { alignItems: "center", marginTop: spacing.xl },
-  switchText: { color: colors.textMuted, fontSize: 14 },
-  switchBold: { color: colors.primaryLight, fontWeight: "700" },
+  switchBtn: {
+    alignItems: "center",
+    marginTop: spacing.xl,
+    paddingVertical: spacing.sm,
+  },
+  switchText: {
+    color: colors.textMuted,
+    fontSize: 14,
+  },
+  switchBold: {
+    color: colors.primary,
+    fontWeight: "700",
+  },
 });
