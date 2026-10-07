@@ -20,6 +20,7 @@ import {
   extractErrorMessage,
   extractFieldErrors,
   formatCurrency,
+  formatCurrencyInput,
   formatDate,
   notify,
   parseAmount,
@@ -41,7 +42,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
     editing?.type ?? "expense",
   );
   const [amount, setAmount] = useState(
-    editing ? String(Number(editing.amount)).replace(".", ",") : "",
+    editing ? formatCurrencyInput(String(Math.round(Number(editing.amount) * 100))) : "",
   );
   const [description, setDescription] = useState(editing?.description ?? "");
   const [dateText, setDateText] = useState(
@@ -227,7 +228,8 @@ export const NewTransactionScreen: React.FC<Props> = ({
   return (
     <Screen>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
         style={{ flex: 1 }}
       >
         <Header
@@ -306,10 +308,10 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   <Text style={[styles.currency, { color: accent }]}>R$</Text>
                   <TextInput
                     value={amount}
-                    onChangeText={setAmount}
+                    onChangeText={(val) => setAmount(formatCurrencyInput(val))}
                     placeholder="0,00"
                     placeholderTextColor={colors.textFaint}
-                    keyboardType="decimal-pad"
+                    keyboardType="number-pad"
                     style={[styles.amountInput, { color: accent }]}
                     selectionColor={accent}
                     cursorColor={accent}
@@ -376,9 +378,9 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   <Field
                     label="Saldo inicial (opcional)"
                     value={newAccountBalance}
-                    onChangeText={setNewAccountBalance}
+                    onChangeText={(val) => setNewAccountBalance(formatCurrencyInput(val))}
                     placeholder="0,00"
-                    keyboardType="decimal-pad"
+                    keyboardType="number-pad"
                   />
                   <Button
                     title="Criar e Vincular Conta"

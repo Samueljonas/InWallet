@@ -100,7 +100,7 @@ export const DashboardScreen: React.FC<Props> = ({
       : (user?.username || "IW").slice(0, 2).toUpperCase();
 
   return (
-    <Screen>
+    <Screen fluid>
       {/* Top Header Clean & Frio */}
       <View style={styles.topBar}>
         <View style={styles.userInfo}>

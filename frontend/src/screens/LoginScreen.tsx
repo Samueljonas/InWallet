@@ -45,7 +45,8 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
   return (
     <Screen>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
         style={{ flex: 1 }}
       >
         <ScrollView

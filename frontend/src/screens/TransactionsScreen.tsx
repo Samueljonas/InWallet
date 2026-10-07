@@ -109,7 +109,7 @@ export const TransactionsScreen: React.FC<Props> = ({
   }, 0);
 
   return (
-    <Screen>
+    <Screen fluid>
       <Header
         title="Extrato Financeiro"
         subtitle={
