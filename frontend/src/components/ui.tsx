@@ -19,13 +19,16 @@ import {
   topInset,
 } from "../theme";
 
-/** Container que centraliza e limita a largura (ótimo na web, neutro no celular). */
+/** Container que centraliza o conteúdo. Aceita fluid para ocupar largura total no desktop. */
 export const Screen: React.FC<{
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-}> = ({ children, style }) => (
+  fluid?: boolean;
+}> = ({ children, style, fluid = false }) => (
   <View style={styles.screenOuter}>
-    <View style={[styles.screenInner, style]}>{children}</View>
+    <View style={[styles.screenInner, fluid && styles.screenFluid, style]}>
+      {children}
+    </View>
   </View>
 );
 
@@ -232,6 +235,7 @@ export const Badge: React.FC<{
 const styles = StyleSheet.create({
   screenOuter: { flex: 1, backgroundColor: colors.bg, alignItems: "center" },
   screenInner: { flex: 1, width: "100%", maxWidth: maxContentWidth },
+  screenFluid: { maxWidth: 1200 },
 
   button: {
     borderRadius: radius.md,

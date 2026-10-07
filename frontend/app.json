@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "androidNavigationBar": {
-      "visible": "sticky-immersive",
+      "visible": "always",
       "barStyle": "dark-content",
       "backgroundColor": "#FFFFFF"
     },
