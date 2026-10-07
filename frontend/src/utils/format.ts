@@ -52,6 +52,16 @@ export function parseAmount(input: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Formata digitação de moeda em tempo real (ex: digita "15" -> "0,15", digita "1500" -> "15,00") */
+export function formatCurrencyInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const num = parseInt(digits, 10) / 100;
+  const [int, dec] = num.toFixed(2).split(".");
+  const withDots = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${withDots},${dec}`;
+}
+
 /** Data local (não UTC) no formato YYYY-MM-DD. */
 export function toIsoDate(d: Date): string {
   const y = d.getFullYear();

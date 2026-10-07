@@ -25,7 +25,7 @@ export const TabBar: React.FC<{
         activeOpacity={0.7}
       >
         <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
-          <Text style={[styles.icon, !active && { opacity: 0.6 }]}>
+          <Text style={[styles.icon, !active && { opacity: 0.65 }]}>
             {item.icon}
           </Text>
         </View>
@@ -41,7 +41,7 @@ export const TabBar: React.FC<{
       <View style={styles.bar}>
         {renderItem(ITEMS[0])}
         {renderItem(ITEMS[1])}
-        <View style={styles.item}>
+        <View style={styles.fabContainer}>
           <TouchableOpacity
             style={styles.fab}
             onPress={onAdd}
@@ -59,19 +59,19 @@ export const TabBar: React.FC<{
 const styles = StyleSheet.create({
   wrapper: {
     alignItems: "center",
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1.5,
+    borderTopColor: "#E2E8F0",
     ...Platform.select({
       web: {
-        boxShadow: "0 -2px 10px rgba(15, 23, 42, 0.04)",
+        boxShadow: "0 -4px 16px rgba(15, 23, 42, 0.08)",
       } as any,
       default: {
         shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        elevation: 8,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 16,
       },
     }),
   },
@@ -79,62 +79,69 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     width: "100%",
     maxWidth: maxContentWidth,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: Platform.select({
-      ios: 28,
-      android: 32,
-      default: 12,
+      ios: 30,
+      android: 44, // Mais espaço para a barra de 3 botões do Android não cobrir
+      default: 14,
     }),
     alignItems: "center",
   },
   item: { flex: 1, alignItems: "center", justifyContent: "center" },
+  fabContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
   iconWrap: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   iconWrapActive: {
     backgroundColor: colors.primarySoft,
   },
-  icon: { fontSize: 20 },
+  icon: { fontSize: 22 },
   label: {
     color: colors.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
   },
   labelActive: {
     color: colors.primary,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   fab: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.pill,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -24,
-    borderWidth: 4,
-    borderColor: colors.white,
+    marginTop: -8, // Perfeitamente alinhado na barra sem ficar 'flutuando' ou desconectado
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
     ...Platform.select({
       web: {
-        boxShadow: "0 6px 16px rgba(37, 99, 235, 0.35)",
+        boxShadow: "0 4px 12px rgba(37, 99, 235, 0.35)",
       } as any,
       default: {
         shadowColor: "#2563EB",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
         elevation: 6,
       },
     }),
   },
   fabText: {
     color: colors.white,
-    fontSize: 28,
-    fontWeight: "400",
-    lineHeight: 30,
+    fontSize: 26,
+    fontWeight: "500",
+    lineHeight: 28,
+    marginTop: -2,
   },
 });
 
