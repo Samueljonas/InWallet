@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Appearance, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Appearance,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 
@@ -12,10 +18,14 @@ import { TransactionsScreen } from "./src/screens/TransactionsScreen";
 import { ManageScreen } from "./src/screens/ManageScreen";
 import { NewTransactionScreen } from "./src/screens/NewTransactionScreen";
 import { Tab, TabBar } from "./src/components/TabBar";
+import { Sidebar } from "./src/components/Sidebar";
 import { colors } from "./src/theme";
 import { Transaction } from "./src/types";
 
 function MainNavigator() {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 840;
+
   const { isAuthenticated, isLoading } = useAuth();
   const [authRoute, setAuthRoute] = useState<"login" | "register">("login");
   const [tab, setTab] = useState<Tab>("home");
@@ -58,7 +68,11 @@ function MainNavigator() {
   const openForm = (editing?: Transaction) => setForm({ open: true, editing });
 
   return (
-    <View style={styles.app}>
+    <View style={[styles.app, isDesktop && styles.appDesktop]}>
+      {isDesktop && (
+        <Sidebar current={tab} onChange={setTab} onAdd={() => openForm()} />
+      )}
+
       <View style={{ flex: 1 }}>
         {tab === "home" && (
           <DashboardScreen
@@ -79,7 +93,10 @@ function MainNavigator() {
           <ManageScreen refreshKey={refreshKey} onChanged={bump} />
         )}
       </View>
-      <TabBar current={tab} onChange={setTab} onAdd={() => openForm()} />
+
+      {!isDesktop && (
+        <TabBar current={tab} onChange={setTab} onAdd={() => openForm()} />
+      )}
     </View>
   );
 }
@@ -95,6 +112,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   app: { flex: 1, backgroundColor: colors.bg },
+  appDesktop: { flexDirection: "row" },
   center: {
     flex: 1,
     backgroundColor: colors.bg,
