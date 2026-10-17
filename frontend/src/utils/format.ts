@@ -1,4 +1,4 @@
-import { Alert, Platform } from "react-native";
+import { Alert, Platform, Share } from "react-native";
 
 export const MONTH_NAMES = [
   "Janeiro",
@@ -163,3 +163,50 @@ export function notify(title: string, message: string) {
     Alert.alert(title, message);
   }
 }
+
+/** Exporta transações para planilha CSV (Download no navegador ou Compartilhamento no celular). */
+export async function exportTransactionsToCsv(
+  transactions: Array<{
+    date: string;
+    type: "income" | "expense";
+    category_name?: string;
+    account_name?: string;
+    description?: string;
+    amount: string | number;
+  }>,
+  filename = "extrato-inwallet.csv",
+) {
+  const header = "Data;Tipo;Categoria;Conta;Descricao;Valor (R$)";
+  const rows = transactions.map((tx) => {
+    const dateBr = formatDate(tx.date);
+    const tipo = tx.type === "income" ? "Receita" : "Despesa";
+    const cat = (tx.category_name || "").replace(/;/g, ",");
+    const acc = (tx.account_name || "").replace(/;/g, ",");
+    const desc = (tx.description || "").replace(/;/g, ",").replace(/\r?\n/g, " ");
+    const sign = tx.type === "expense" ? "-" : "";
+    const val = `${sign}${Number(tx.amount).toFixed(2).replace(".", ",")}`;
+    return `${dateBr};${tipo};${cat};${acc};${desc};${val}`;
+  });
+
+  // BOM UTF-8 (\uFEFF) garante que o Excel abra acentos corretamente
+  const csvContent = "\uFEFF" + [header, ...rows].join("\n");
+
+  if (Platform.OS === "web" && typeof document !== "undefined") {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  await Share.share({
+    title: filename,
+    message: csvContent,
+  });
+}
+

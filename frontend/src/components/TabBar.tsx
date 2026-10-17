@@ -1,6 +1,6 @@
 import React from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors, maxContentWidth, radius, spacing } from "../theme";
+import { colors, radius, spacing } from "../theme";
 
 export type Tab = "home" | "transactions" | "manage";
 
@@ -22,7 +22,7 @@ export const TabBar: React.FC<{
         key={item.key}
         style={styles.item}
         onPress={() => onChange(item.key)}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
       >
         <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
           <Text style={[styles.icon, !active && { opacity: 0.65 }]}>
@@ -37,11 +37,13 @@ export const TabBar: React.FC<{
   };
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.bar}>
+    <View style={styles.outerContainer} pointerEvents="box-none">
+      <View style={styles.pillBar}>
         {renderItem(ITEMS[0])}
         {renderItem(ITEMS[1])}
-        <View style={styles.fabContainer}>
+
+        {/* Botão "+" Centralizado na Pílula */}
+        <View style={styles.fabSlot}>
           <TouchableOpacity
             style={styles.fab}
             onPress={onAdd}
@@ -50,6 +52,7 @@ export const TabBar: React.FC<{
             <Text style={styles.fabText}>+</Text>
           </TouchableOpacity>
         </View>
+
         {renderItem(ITEMS[2])}
       </View>
     </View>
@@ -57,56 +60,66 @@ export const TabBar: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
+  outerContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: 6,
+    paddingBottom: Platform.select({
+      ios: 26,
+      android: 20,
+      default: 16,
+    }),
+    backgroundColor: "transparent",
     alignItems: "center",
+  },
+  pillBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    width: "100%",
+    maxWidth: 460,
     backgroundColor: "#FFFFFF",
-    borderTopWidth: 1.5,
-    borderTopColor: "#E2E8F0",
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
     ...Platform.select({
       web: {
-        boxShadow: "0 -4px 16px rgba(15, 23, 42, 0.08)",
+        boxShadow: "0 10px 28px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.06)",
       } as any,
       default: {
         shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 16,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.14,
+        shadowRadius: 14,
+        elevation: 14,
       },
     }),
   },
-  bar: {
-    flexDirection: "row",
-    width: "100%",
-    maxWidth: maxContentWidth,
-    paddingTop: 10,
-    paddingBottom: Platform.select({
-      ios: 30,
-      android: 44, // Mais espaço para a barra de 3 botões do Android não cobrir
-      default: 14,
-    }),
-    alignItems: "center",
-  },
-  item: { flex: 1, alignItems: "center", justifyContent: "center" },
-  fabContainer: {
+  item: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
+    paddingVertical: 2,
+  },
+  fabSlot: {
+    paddingHorizontal: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconWrap: {
     paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: radius.pill,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   iconWrapActive: {
     backgroundColor: colors.primarySoft,
   },
-  icon: { fontSize: 22 },
+  icon: { fontSize: 19 },
   label: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   labelActive: {
@@ -120,28 +133,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -8, // Perfeitamente alinhado na barra sem ficar 'flutuando' ou desconectado
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
     ...Platform.select({
       web: {
-        boxShadow: "0 4px 12px rgba(37, 99, 235, 0.35)",
+        boxShadow: "0 6px 16px rgba(37, 99, 235, 0.4)",
       } as any,
       default: {
         shadowColor: "#2563EB",
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 6,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+        elevation: 8,
       },
     }),
   },
   fabText: {
     color: colors.white,
     fontSize: 26,
-    fontWeight: "500",
+    fontWeight: "600",
     lineHeight: 28,
-    marginTop: -2,
+    marginTop: -1,
   },
 });
+
 

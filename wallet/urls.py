@@ -22,6 +22,10 @@ api_patterns = [
     # Categories
     path('categories/', api_views.CategoryListCreateAPIView.as_view(), name='api_categories_list'),
     path('categories/<int:pk>/', api_views.CategoryDetailAPIView.as_view(), name='api_category_detail'),
+
+    # Budgets (Metas por Categoria)
+    path('budgets/', api_views.BudgetListCreateAPIView.as_view(), name='api_budgets_list'),
+    path('budgets/<int:pk>/', api_views.BudgetDetailAPIView.as_view(), name='api_budget_detail'),
 ]
 
 # ----------------------------------------------------

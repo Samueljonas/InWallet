@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) =>
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={logout}
-            title="Sair"
+            accessibilityLabel="Sair"
           >
             <Text style={styles.logoutIcon}>🚪</Text>
           </TouchableOpacity>
