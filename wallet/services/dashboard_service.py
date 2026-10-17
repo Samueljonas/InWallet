@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Any, Dict, List
 from django.db.models import Sum, Case, When, F, DecimalField
 from django.db.models.functions import TruncMonth
-from wallet.models import Transaction, Account
+from wallet.models import Transaction, Account, Budget
 
 
 class DashboardService:
@@ -31,7 +31,7 @@ class DashboardService:
     def get_dashboard_data(cls, user: Any, year: int, month: int) -> Dict[str, Any]:
         """
         Gathers summary metrics, account balances, category distribution,
-        and monthly timeline aggregations for a user.
+        budgets progress, and monthly timeline aggregations for a user.
         """
         accounts = Account.objects.filter(user=user)
         total_balance = accounts.aggregate(total=Sum('balance'))['total'] or Decimal('0.00')
@@ -44,17 +44,39 @@ class DashboardService:
         monthly_expense = monthly_txs.filter(type='expense').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         monthly_net = monthly_income - monthly_expense
 
-        # Expenses by category (Top 5)
-        category_qs = (
+        # All expenses by category in the month
+        all_expense_by_cat = (
             monthly_txs.filter(type='expense')
-            .values('category__name')
+            .values('category_id', 'category__name')
             .annotate(total=Sum('amount'))
-            .order_by('-total')[:5]
+            .order_by('-total')
         )
+        spent_map = {
+            item['category_id']: item['total'] or Decimal('0.00')
+            for item in all_expense_by_cat
+        }
+
         expenses_by_category = [
             {'category': item['category__name'], 'total': item['total']}
-            for item in category_qs
+            for item in all_expense_by_cat[:5]
         ]
+
+        # Budgets progress for the month
+        user_budgets = Budget.objects.filter(user=user).select_related('category')
+        budgets_progress = []
+        for b in user_budgets:
+            spent = spent_map.get(b.category_id, Decimal('0.00'))
+            limit_val = b.amount or Decimal('0.01')
+            pct = float((spent / limit_val) * Decimal('100.0')) if limit_val > 0 else 0.0
+            budgets_progress.append({
+                'id': b.id,
+                'category_id': b.category_id,
+                'category_name': b.category.name,
+                'limit': float(b.amount),
+                'spent': float(spent),
+                'percentage': round(pct, 1),
+            })
+        budgets_progress.sort(key=lambda x: x['percentage'], reverse=True)
 
         # Monthly timeline summary for the year
         monthly_summary_qs = (
@@ -99,5 +121,6 @@ class DashboardService:
             'monthly_expense': monthly_expense,
             'monthly_net': monthly_net,
             'expenses_by_category': expenses_by_category,
+            'budgets_progress': budgets_progress,
             'monthly_summary': monthly_summary,
         }

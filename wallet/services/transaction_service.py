@@ -13,6 +13,18 @@ class TransactionService:
     Removes side-effect-heavy balance calculations from signals and views.
     """
 
+    @staticmethod
+    def _add_months(source_date: Any, months: int) -> Any:
+        import calendar
+        import datetime
+        if isinstance(source_date, str):
+            source_date = datetime.date.fromisoformat(source_date)
+        month = source_date.month - 1 + months
+        year = source_date.year + month // 12
+        month = month % 12 + 1
+        day = min(source_date.day, calendar.monthrange(year, month)[1])
+        return datetime.date(year, month, day)
+
     @classmethod
     @db_transaction.atomic
     def create_transaction(
@@ -25,39 +37,78 @@ class TransactionService:
         date: Any,
         description: Optional[str] = "",
         payment_method: Optional[str] = "",
-        note: Optional[str] = ""
+        note: Optional[str] = "",
+        installments: int = 1,
+        installment_mode: str = "single",
     ) -> Transaction:
         """
-        Creates a transaction and atomically updates the associated account balance.
+        Creates a transaction (or multiple if parcelado/recorrente) and atomically updates
+        the associated account balance.
+        installment_mode:
+          - 'single': 1 lançamento
+          - 'split': divide o valor total em N parcelas (ex: R$ 1000 em 10x de R$ 100)
+          - 'repeat': repete o mesmo valor por N meses (ex: Aluguel R$ 1500 por 12 meses)
         """
-        # Ensure the account and category belong to the user
         if account.user != user:
             raise ValidationError("Account does not belong to the user.")
         if category.user != user:
             raise ValidationError("Category does not belong to the user.")
 
-        strategy = TransactionStrategyFactory.get_strategy(tx_type)
-        delta = strategy.calculate_delta(amount)
-
-        # Atomic lock on account row to prevent race conditions
+        count = max(1, min(int(installments or 1), 48))
         locked_account = Account.objects.select_for_update().get(pk=account.pk)
+        strategy = TransactionStrategyFactory.get_strategy(tx_type)
 
-        transaction = Transaction.objects.create(
-            user=user,
-            account=locked_account,
-            category=category,
-            type=tx_type,
-            amount=amount,
-            date=date,
-            description=description,
-            payment_method=payment_method,
-            note=note
-        )
+        if count == 1 or installment_mode == "single":
+            delta = strategy.calculate_delta(amount)
+            tx = Transaction.objects.create(
+                user=user,
+                account=locked_account,
+                category=category,
+                type=tx_type,
+                amount=amount,
+                date=date,
+                description=description,
+                payment_method=payment_method,
+                note=note,
+            )
+            locked_account.balance = (locked_account.balance or Decimal('0.00')) + delta
+            locked_account.save(update_fields=['balance'])
+            return tx
 
-        locked_account.balance = (locked_account.balance or Decimal('0.00')) + delta
+        # Parcelado (split) ou Fixo/Recorrente (repeat)
+        if installment_mode == "split":
+            base_part = (amount / Decimal(count)).quantize(Decimal('0.01'))
+            remainder = amount - (base_part * count)
+        else:
+            base_part = amount
+            remainder = Decimal('0.00')
+
+        first_tx = None
+        total_delta = Decimal('0.00')
+        base_desc = (description or category.name).strip()
+
+        for i in range(count):
+            part_amount = base_part + (remainder if i == 0 else Decimal('0.00'))
+            tx_date = cls._add_months(date, i)
+            suffix = f" ({i + 1}/{count})"
+            tx = Transaction.objects.create(
+                user=user,
+                account=locked_account,
+                category=category,
+                type=tx_type,
+                amount=part_amount,
+                date=tx_date,
+                description=f"{base_desc}{suffix}",
+                payment_method=payment_method,
+                note=note,
+            )
+            if first_tx is None:
+                first_tx = tx
+            total_delta += strategy.calculate_delta(part_amount)
+
+        locked_account.balance = (locked_account.balance or Decimal('0.00')) + total_delta
         locked_account.save(update_fields=['balance'])
-
-        return transaction
+        return first_tx
 
     @classmethod
     @db_transaction.atomic

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Transaction, Account, Category
+from .models import Transaction, Account, Category, Budget
 from .services import TransactionService, DashboardService
 
 
@@ -47,6 +47,33 @@ class CategorySerializer(serializers.ModelSerializer):
         return attrs
 
 
+class BudgetSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Budget
+        fields = ['id', 'category', 'category_name', 'amount']
+
+    def validate_category(self, value):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and value.user != request.user:
+            raise serializers.ValidationError("Esta categoria não pertence ao usuário autenticado.")
+        if value.type != 'expense':
+            raise serializers.ValidationError("Metas de orçamento só podem ser criadas para categorias de despesa.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        category = validated_data['category']
+        amount = validated_data['amount']
+        budget, _ = Budget.objects.update_or_create(
+            user=user,
+            category=category,
+            defaults={'amount': amount}
+        )
+        return budget
+
+
 class TransactionSerializer(serializers.ModelSerializer):
     """
     Dependency Inversion (DIP) & Single Responsibility (SRP):
@@ -54,6 +81,13 @@ class TransactionSerializer(serializers.ModelSerializer):
     """
     category_name = serializers.CharField(source='category.name', read_only=True)
     account_name = serializers.CharField(source='account.name', read_only=True)
+    installments = serializers.IntegerField(write_only=True, required=False, default=1, min_value=1, max_value=48)
+    installment_mode = serializers.ChoiceField(
+        choices=['single', 'split', 'repeat'],
+        write_only=True,
+        required=False,
+        default='single',
+    )
 
     class Meta:
         model = Transaction
@@ -70,6 +104,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             'payment_method',
             'note',
             'user',
+            'installments',
+            'installment_mode',
         ]
         read_only_fields = ['user']
 
@@ -87,6 +123,8 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
+        installments = validated_data.pop('installments', 1)
+        installment_mode = validated_data.pop('installment_mode', 'single')
         return TransactionService.create_transaction(
             user=user,
             account=validated_data['account'],
@@ -97,9 +135,13 @@ class TransactionSerializer(serializers.ModelSerializer):
             description=validated_data.get('description', ''),
             payment_method=validated_data.get('payment_method', ''),
             note=validated_data.get('note', ''),
+            installments=installments,
+            installment_mode=installment_mode,
         )
 
     def update(self, instance, validated_data):
+        validated_data.pop('installments', None)
+        validated_data.pop('installment_mode', None)
         return TransactionService.update_transaction(
             transaction=instance,
             **validated_data
@@ -118,4 +160,5 @@ class DashboardMetricsSerializer(serializers.Serializer):
     monthly_expense = serializers.DecimalField(max_digits=14, decimal_places=2)
     monthly_net = serializers.DecimalField(max_digits=14, decimal_places=2)
     expenses_by_category = serializers.ListField()
+    budgets_progress = serializers.ListField()
     monthly_summary = serializers.ListField()

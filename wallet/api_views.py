@@ -2,14 +2,15 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.utils import timezone
 
-from .models import Transaction, Account, Category
+from .models import Transaction, Account, Category, Budget
 from .serializers import (
     TransactionSerializer,
     AccountSerializer,
     CategorySerializer,
+    BudgetSerializer,
     DashboardMetricsSerializer,
 )
 from .services import TransactionService, DashboardService
@@ -42,7 +43,7 @@ class BaseUserFilteredDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class TransactionListCreateAPIView(BaseUserFilteredListCreateAPIView):
     """
-    Lista com filtros opcionais: ?year=2026&month=10&type=expense
+    Lista com filtros opcionais: ?year=2026&month=10&type=expense&account=1&category=2&search=mercado
     """
     model = Transaction
     serializer_class = TransactionSerializer
@@ -56,6 +57,9 @@ class TransactionListCreateAPIView(BaseUserFilteredListCreateAPIView):
         year = params.get('year')
         month = params.get('month')
         tx_type = params.get('type')
+        account_id = params.get('account')
+        category_id = params.get('category')
+        search = params.get('search', '').strip()
 
         if year and year.isdigit():
             qs = qs.filter(date__year=int(year))
@@ -63,6 +67,17 @@ class TransactionListCreateAPIView(BaseUserFilteredListCreateAPIView):
             qs = qs.filter(date__month=int(month))
         if tx_type in ('income', 'expense'):
             qs = qs.filter(type=tx_type)
+        if account_id and account_id.isdigit():
+            qs = qs.filter(account_id=int(account_id))
+        if category_id and category_id.isdigit():
+            qs = qs.filter(category_id=int(category_id))
+        if search:
+            qs = qs.filter(
+                Q(description__icontains=search)
+                | Q(category__name__icontains=search)
+                | Q(account__name__icontains=search)
+                | Q(note__icontains=search)
+            )
 
         return qs.order_by('-date', '-id')
 
@@ -107,6 +122,22 @@ class CategoryDetailAPIView(BaseUserFilteredDetailAPIView):
             raise ValidationError(
                 {'detail': 'Esta categoria possui transações e não pode ser excluída.'}
             )
+
+
+# --- BUDGET API ---
+
+class BudgetListCreateAPIView(BaseUserFilteredListCreateAPIView):
+    model = Budget
+    serializer_class = BudgetSerializer
+
+    def get_queryset(self):
+        return Budget.objects.filter(user=self.request.user).select_related('category')
+
+
+class BudgetDetailAPIView(BaseUserFilteredDetailAPIView):
+    model = Budget
+    serializer_class = BudgetSerializer
+
 
 
 # --- DASHBOARD API ---
