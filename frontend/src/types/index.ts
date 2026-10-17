@@ -32,6 +32,22 @@ export interface Transaction {
   note?: string;
 }
 
+export interface Budget {
+  id: number;
+  category: number;
+  category_name?: string;
+  amount: string;
+}
+
+export interface BudgetProgress {
+  id: number;
+  category_id: number;
+  category_name: string;
+  limit: number;
+  spent: number;
+  percentage: number;
+}
+
 export interface DashboardMetrics {
   selected_year: number;
   selected_month: number;
@@ -40,6 +56,7 @@ export interface DashboardMetrics {
   monthly_expense: string;
   monthly_net: string;
   expenses_by_category: Array<{ category: string; total: string | number }>;
+  budgets_progress?: BudgetProgress[];
   monthly_summary: Array<{
     month: string;
     month_number: number | null;
@@ -48,3 +65,4 @@ export interface DashboardMetrics {
     expense: number;
   }>;
 }
+
