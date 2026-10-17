@@ -3,18 +3,26 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { api } from "../api/client";
-import { Transaction } from "../types";
+import { api, fetchAll } from "../api/client";
+import { Account, Transaction } from "../types";
 import { Chip, EmptyState, Header, Screen } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
 import { colors, radius, spacing } from "../theme";
-import { confirmAction, extractErrorMessage, formatCurrency, notify } from "../utils/format";
+import {
+  confirmAction,
+  exportTransactionsToCsv,
+  extractErrorMessage,
+  formatCurrency,
+  notify,
+} from "../utils/format";
 
 type Filter = "all" | "expense" | "income";
 
@@ -39,6 +47,9 @@ export const TransactionsScreen: React.FC<Props> = ({
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [filter, setFilter] = useState<Filter>("all");
+  const [accountFilter, setAccountFilter] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const [items, setItems] = useState<Transaction[]>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -48,11 +59,19 @@ export const TransactionsScreen: React.FC<Props> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    fetchAll<Account>("/api/v1/accounts/")
+      .then(setAccounts)
+      .catch(() => {});
+  }, [refreshKey]);
+
   const load = useCallback(async () => {
     try {
       setError("");
       const params: Record<string, string | number> = { year, month };
       if (filter !== "all") params.type = filter;
+      if (accountFilter) params.account = accountFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
       const res = await api.get<Page>("/api/v1/transactions/", { params });
       setItems(res.data.results);
       setNext(res.data.next);
@@ -65,11 +84,14 @@ export const TransactionsScreen: React.FC<Props> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [year, month, filter]);
+  }, [year, month, filter, accountFilter, searchQuery]);
 
   useEffect(() => {
     setLoading(true);
-    load();
+    const timer = setTimeout(() => {
+      load();
+    }, 220);
+    return () => clearTimeout(timer);
   }, [load, refreshKey]);
 
   async function loadMore() {
@@ -102,6 +124,15 @@ export const TransactionsScreen: React.FC<Props> = ({
     }
   }
 
+  async function handleExportCsv() {
+    if (items.length === 0) {
+      notify("Sem dados", "Não há transações no filtro atual para exportar.");
+      return;
+    }
+    const mStr = month < 10 ? `0${month}` : String(month);
+    await exportTransactionsToCsv(items, `extrato-inwallet-${year}-${mStr}.csv`);
+  }
+
   // Cálculos do resumo local filtrado
   const filteredTotal = items.reduce((acc, tx) => {
     const val = Number(tx.amount);
@@ -117,6 +148,17 @@ export const TransactionsScreen: React.FC<Props> = ({
             ? "Carregando lançamentos…"
             : `${count} ${count === 1 ? "registro encontrado" : "registros encontrados"}`
         }
+        right={
+          items.length > 0 ? (
+            <TouchableOpacity
+              style={styles.exportBtn}
+              onPress={handleExportCsv}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.exportBtnText}>📥 Exportar CSV</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
       />
 
       <View style={styles.filters}>
@@ -129,7 +171,34 @@ export const TransactionsScreen: React.FC<Props> = ({
           }}
         />
 
-        <View style={styles.chips}>
+        {/* Barra de Busca Rápida */}
+        <View style={styles.searchBox}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Buscar por descrição, categoria ou conta..."
+            placeholderTextColor={colors.textFaint}
+            style={styles.searchInput}
+            returnKeyType="search"
+          />
+          {!!searchQuery && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              style={styles.clearSearchBtn}
+            >
+              <Text style={styles.clearSearchText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filtro de Tipo + Contas */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScroll}
+        >
           <Chip
             label="Todas"
             active={filter === "all"}
@@ -145,16 +214,31 @@ export const TransactionsScreen: React.FC<Props> = ({
             active={filter === "income"}
             onPress={() => setFilter("income")}
           />
-        </View>
+          {accounts.length > 1 && (
+            <>
+              <View style={styles.chipDivider} />
+              {accounts.map((acc) => (
+                <Chip
+                  key={acc.id}
+                  label={`🏦 ${acc.name}`}
+                  active={accountFilter === acc.id}
+                  onPress={() =>
+                    setAccountFilter((cur) => (cur === acc.id ? null : acc.id))
+                  }
+                />
+              ))}
+            </>
+          )}
+        </ScrollView>
 
         {items.length > 0 && (
           <View style={styles.summaryBar}>
             <Text style={styles.summaryBarLabel}>
               {filter === "expense"
-                ? "Total de despesas:"
+                ? "Total de despesas filtradas:"
                 : filter === "income"
-                ? "Total de receitas:"
-                : "Balanço do período:"}
+                ? "Total de receitas filtradas:"
+                : "Balanço do filtro:"}
             </Text>
             <Text
               style={[
@@ -227,7 +311,11 @@ export const TransactionsScreen: React.FC<Props> = ({
               <EmptyState
                 icon="🧾"
                 title="Nenhum lançamento encontrado"
-                subtitle="Toque no botão + para adicionar sua primeira transação neste período."
+                subtitle={
+                  searchQuery || accountFilter
+                    ? "Tente limpar os filtros ou buscar por outro termo."
+                    : "Toque no botão + para adicionar sua primeira transação neste período."
+                }
               />
             )
           }
@@ -246,8 +334,61 @@ export const TransactionsScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  chips: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+  filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  exportBtn: {
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+  },
+  exportBtnText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+  },
+  searchIcon: {
+    fontSize: 14,
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    paddingVertical: 10,
+  },
+  clearSearchBtn: {
+    padding: 4,
+  },
+  clearSearchText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  chipsScroll: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingRight: spacing.md,
+  },
+  chipDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: colors.borderStrong,
+    marginHorizontal: 4,
+  },
   summaryBar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -284,3 +425,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
+

@@ -72,6 +72,12 @@ export const NewTransactionScreen: React.FC<Props> = ({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Parcelamento / Recorrência (apenas ao criar novo lançamento)
+  const [installmentMode, setInstallmentMode] = useState<
+    "single" | "split" | "repeat"
+  >("single");
+  const [installmentsCount, setInstallmentsCount] = useState(2);
+
   const visibleCategories = categories.filter((c) => c.type === type);
   const isExpense = type === "expense";
   const accent = isExpense ? colors.expense : colors.income;
@@ -174,7 +180,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
     setErrors(e);
     if (Object.keys(e).length) return;
 
-    const payload = {
+    const payload: Record<string, any> = {
       account: accountId,
       category: categoryId,
       type,
@@ -182,6 +188,11 @@ export const NewTransactionScreen: React.FC<Props> = ({
       date: iso,
       description: description.trim(),
     };
+
+    if (!editing && installmentMode !== "single" && installmentsCount > 1) {
+      payload.installment_mode = installmentMode;
+      payload.installments = installmentsCount;
+    }
 
     try {
       setSaving(true);
@@ -437,6 +448,77 @@ export const NewTransactionScreen: React.FC<Props> = ({
                 </Card>
               )}
 
+              {/* Parcelamento / Recorrência Mensal (apenas ao criar) */}
+              {!editing && (
+                <>
+                  <Text style={styles.sectionLabel}>
+                    Frequência / Parcelamento
+                  </Text>
+                  <View style={styles.chips}>
+                    <Chip
+                      label="À vista / Único"
+                      active={installmentMode === "single"}
+                      onPress={() => setInstallmentMode("single")}
+                    />
+                    <Chip
+                      label="💳 Parcelar valor"
+                      active={installmentMode === "split"}
+                      onPress={() => setInstallmentMode("split")}
+                    />
+                    <Chip
+                      label="🔁 Repetir todo mês"
+                      active={installmentMode === "repeat"}
+                      onPress={() => setInstallmentMode("repeat")}
+                    />
+                  </View>
+
+                  {installmentMode !== "single" && (
+                    <Card style={styles.quickCard}>
+                      <Text style={styles.quickCardTitle}>
+                        {installmentMode === "split"
+                          ? "Em quantas parcelas deseja dividir o valor?"
+                          : "Por quantos meses seguidos deseja repetir?"}
+                      </Text>
+                      <View style={styles.chips}>
+                        {[2, 3, 4, 6, 10, 12].map((n) => (
+                          <Chip
+                            key={n}
+                            label={`${n}x`}
+                            active={installmentsCount === n}
+                            onPress={() => setInstallmentsCount(n)}
+                          />
+                        ))}
+                      </View>
+                      {(() => {
+                        const parsed = parseAmount(amount) || 0;
+                        if (parsed <= 0) return null;
+                        const each =
+                          installmentMode === "split"
+                            ? parsed / installmentsCount
+                            : parsed;
+                        const total =
+                          installmentMode === "split"
+                            ? parsed
+                            : parsed * installmentsCount;
+                        return (
+                          <Text style={styles.installmentPreview}>
+                            Serão criados{" "}
+                            <Text style={{ fontWeight: "800" }}>
+                              {installmentsCount} lançamentos mensais
+                            </Text>{" "}
+                            de{" "}
+                            <Text style={{ fontWeight: "800", color: accent }}>
+                              {formatCurrency(each)}
+                            </Text>{" "}
+                            (Total: {formatCurrency(total)}).
+                          </Text>
+                        );
+                      })()}
+                    </Card>
+                  )}
+                </>
+              )}
+
               {/* Botões Principais de Ação */}
               <Button
                 title={editing ? "Salvar Alterações" : "Adicionar Lançamento"}
@@ -594,5 +676,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontWeight: "600",
+  },
+  installmentPreview: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: spacing.md,
+    lineHeight: 18,
   },
 });
