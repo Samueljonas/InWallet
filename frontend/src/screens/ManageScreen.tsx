@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { api, fetchAll } from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
-import { Account, Category } from "../types";
+import { Account, Budget, Category } from "../types";
 import {
   Button,
   Card,
@@ -31,7 +31,7 @@ import {
   parseAmount,
 } from "../utils/format";
 
-type Segment = "accounts" | "categories";
+type Segment = "accounts" | "categories" | "budgets";
 
 interface RowProps {
   title: string;
@@ -117,6 +117,7 @@ export const ManageScreen: React.FC<{
   const [segment, setSegment] = useState<Segment>("accounts");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -127,16 +128,23 @@ export const ManageScreen: React.FC<{
   const [newAccBalance, setNewAccBalance] = useState("");
   const [newCatName, setNewCatName] = useState("");
   const [newCatType, setNewCatType] = useState<"expense" | "income">("expense");
+
+  const [budgetCatId, setBudgetCatId] = useState<number | null>(null);
+  const [budgetAmount, setBudgetAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [accs, cats] = await Promise.all([
+      const [accs, cats, bgs] = await Promise.all([
         fetchAll<Account>("/api/v1/accounts/"),
         fetchAll<Category>("/api/v1/categories/"),
+        fetchAll<Budget>("/api/v1/budgets/"),
       ]);
       setAccounts(accs);
       setCategories(cats);
+      setBudgets(bgs);
+      const expCats = cats.filter((c) => c.type === "expense");
+      setBudgetCatId((cur) => cur ?? expCats[0]?.id ?? null);
     } catch (err) {
       notify(
         "Erro",
@@ -208,6 +216,47 @@ export const ManageScreen: React.FC<{
       notify("Erro ao criar categoria", extractErrorMessage(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveBudget() {
+    if (!budgetCatId) {
+      notify("Atenção", "Selecione uma categoria de despesa.");
+      return;
+    }
+    const val = parseAmount(budgetAmount);
+    if (val === null || val <= 0) {
+      notify("Valor inválido", "Informe um limite mensal maior que zero.");
+      return;
+    }
+    try {
+      setSaving(true);
+      await api.post("/api/v1/budgets/", {
+        category: budgetCatId,
+        amount: val.toFixed(2),
+      });
+      setBudgetAmount("");
+      await load();
+      onChanged();
+    } catch (err) {
+      notify("Erro ao salvar meta", extractErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeBudget(bg: Budget) {
+    const ok = await confirmAction(
+      `Remover meta de "${bg.category_name}"?`,
+      "A categoria continuará existindo normalmente, apenas o alerta de limite mensal será removido.",
+    );
+    if (!ok) return;
+    try {
+      await api.delete(`/api/v1/budgets/${bg.id}/`);
+      await load();
+      onChanged();
+    } catch (err) {
+      notify("Erro ao excluir meta", extractErrorMessage(err));
     }
   }
 
@@ -284,7 +333,7 @@ export const ManageScreen: React.FC<{
       >
         <View style={styles.segments}>
           <Chip
-            label="Contas Bancárias"
+            label="Contas"
             active={segment === "accounts"}
             count={accounts.length}
             onPress={() => {
@@ -298,6 +347,15 @@ export const ManageScreen: React.FC<{
             count={categories.length}
             onPress={() => {
               setSegment("categories");
+              setEditingKey(null);
+            }}
+          />
+          <Chip
+            label="🎯 Metas"
+            active={segment === "budgets"}
+            count={budgets.length}
+            onPress={() => {
+              setSegment("budgets");
               setEditingKey(null);
             }}
           />
@@ -367,7 +425,7 @@ export const ManageScreen: React.FC<{
               />
             </Card>
           </>
-        ) : (
+        ) : segment === "categories" ? (
           <>
             <SectionTitle
               title="Categorias de Despesa"
@@ -419,6 +477,86 @@ export const ManageScreen: React.FC<{
               <Button
                 title="Cadastrar Categoria"
                 onPress={addCategory}
+                loading={saving}
+                style={{ marginTop: spacing.lg }}
+              />
+            </Card>
+          </>
+        ) : (
+          <>
+            <SectionTitle
+              title="Metas de Gastos Mensais"
+              subtitle="Defina tetos de gastos por categoria e acompanhe no Dashboard"
+            />
+            {budgets.length === 0 ? (
+              <Card>
+                <EmptyState
+                  icon="🎯"
+                  title="Nenhuma meta definida"
+                  subtitle="Defina um limite mensal para suas categorias de despesa abaixo."
+                />
+              </Card>
+            ) : (
+              budgets.map((bg) => (
+                <View key={bg.id} style={[styles.row, shadowCard]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle}>{bg.category_name}</Text>
+                    <Text style={styles.rowSub}>
+                      Teto mensal: {formatCurrency(bg.amount)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setBudgetCatId(bg.category);
+                      setBudgetAmount(
+                        formatCurrencyInput(
+                          String(Math.round(Number(bg.amount) * 100)),
+                        ),
+                      );
+                    }}
+                    style={styles.iconBtn}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.icon}>✏️</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => removeBudget(bg)}
+                    style={styles.iconBtn}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.icon}>🗑</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+
+            <SectionTitle
+              title="Definir ou Atualizar Meta"
+              subtitle="Escolha uma categoria de despesa e o valor máximo mensal"
+            />
+            <Card>
+              <Text style={styles.rowSub}>Categoria de Despesa</Text>
+              <View style={[styles.catTypeChips, { flexWrap: "wrap" }]}>
+                {expenseCats.map((cat) => (
+                  <Chip
+                    key={cat.id}
+                    label={cat.name}
+                    active={budgetCatId === cat.id}
+                    onPress={() => setBudgetCatId(cat.id)}
+                  />
+                ))}
+              </View>
+              <Field
+                label="Limite Mensal (R$)"
+                value={budgetAmount}
+                onChangeText={(val) => setBudgetAmount(formatCurrencyInput(val))}
+                placeholder="0,00"
+                keyboardType="number-pad"
+                hint="Você verá uma barra de progresso no Dashboard conforme gastar."
+              />
+              <Button
+                title="Salvar Meta Mensal"
+                onPress={saveBudget}
                 loading={saving}
                 style={{ marginTop: spacing.lg }}
               />

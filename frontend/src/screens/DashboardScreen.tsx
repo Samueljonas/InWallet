@@ -250,6 +250,66 @@ export const DashboardScreen: React.FC<Props> = ({
               </View>
             )}
 
+            {/* Metas de Gastos Mensais (Orçamentos por Categoria) */}
+            {(metrics?.budgets_progress?.length ?? 0) > 0 && (
+              <View style={styles.sectionWrap}>
+                <SectionTitle
+                  title="🎯 Metas de Gastos do Mês"
+                  subtitle="Acompanhamento dos seus limites por categoria"
+                />
+                <Card>
+                  <View style={styles.budgetsWrap}>
+                    {metrics!.budgets_progress!.map((bg) => {
+                      const pct = bg.percentage;
+                      const barColor =
+                        pct >= 100
+                          ? colors.expense
+                          : pct >= 75
+                          ? "#D97706"
+                          : colors.income;
+                      const clampedWidth = Math.min(100, Math.max(4, pct));
+                      return (
+                        <View key={bg.id} style={styles.budgetRow}>
+                          <View style={styles.budgetHeader}>
+                            <Text style={styles.budgetCatName}>
+                              {bg.category_name}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.budgetPctBadge,
+                                { color: barColor },
+                              ]}
+                            >
+                              {pct.toFixed(0)}%
+                            </Text>
+                          </View>
+                          <View style={styles.budgetTrack}>
+                            <View
+                              style={[
+                                styles.budgetFill,
+                                {
+                                  width: `${clampedWidth}%`,
+                                  backgroundColor: barColor,
+                                },
+                              ]}
+                            />
+                          </View>
+                          <View style={styles.budgetFooter}>
+                            <Text style={styles.budgetSpentText}>
+                              Gasto: {formatCurrency(bg.spent)}
+                            </Text>
+                            <Text style={styles.budgetLimitText}>
+                              Teto: {formatCurrency(bg.limit)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </Card>
+              </View>
+            )}
+
             {/* Gráfico 1: Distribuição de Despesas por Categoria */}
             <View style={styles.sectionWrap}>
               <SectionTitle
@@ -542,5 +602,50 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     fontWeight: "700",
+  },
+  budgetsWrap: {
+    gap: spacing.lg,
+  },
+  budgetRow: {
+    gap: 6,
+  },
+  budgetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  budgetCatName: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  budgetPctBadge: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  budgetTrack: {
+    height: 10,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill,
+    overflow: "hidden",
+  },
+  budgetFill: {
+    height: "100%",
+    borderRadius: radius.pill,
+  },
+  budgetFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  budgetSpentText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  budgetLimitText: {
+    color: colors.textFaint,
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
