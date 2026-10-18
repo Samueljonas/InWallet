@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-inwallet}
+      POSTGRES_USER: ${DB_USER:-inwallet}
+      POSTGRES_PASSWORD: ${DB_PASS:-inwallet_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-inwallet} -d ${DB_NAME:-inwallet}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: DockerFile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: ${DEBUG:-False}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-env}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-False}
+      DB_NAME: ${DB_NAME:-inwallet}
+      DB_USER: ${DB_USER:-inwallet}
+      DB_PASS: ${DB_PASS:-inwallet_secret}
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+

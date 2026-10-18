@@ -1,6 +1,30 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
+
+# Dependências de sistema mínimas para PostgreSQL
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala dependências Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-ENV PYTHONUNBUFFERED=1
+
+# Cria usuário não-root para segurança do container
+RUN useradd -m -r appuser && chown -R appuser:appuser /app
+
+# Copia o código da aplicação
+COPY --chown=appuser:appuser . .
+
+# Coleta arquivos estáticos para o WhiteNoise
+RUN python manage.py collectstatic --noinput
+
+USER appuser
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn inwallet.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"]
