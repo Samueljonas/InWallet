@@ -1,5 +1,11 @@
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { colors, radius, spacing } from "../theme";
 
 export type Tab = "home" | "transactions" | "manage";
@@ -20,12 +26,12 @@ export const TabBar: React.FC<{
     return (
       <TouchableOpacity
         key={item.key}
-        style={styles.item}
+        style={[styles.item, active && styles.itemActive]}
         onPress={() => onChange(item.key)}
         activeOpacity={0.75}
       >
         <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
-          <Text style={[styles.icon, !active && { opacity: 0.65 }]}>
+          <Text style={[styles.icon, !active && styles.iconInactive]}>
             {item.icon}
           </Text>
         </View>
@@ -38,21 +44,22 @@ export const TabBar: React.FC<{
 
   return (
     <View style={styles.outerContainer} pointerEvents="box-none">
+      {/* Botão Flutuante "+" no Canto Inferior Direito Acima da Navbar */}
+      <View style={styles.floatingFabRow} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={onAdd}
+          activeOpacity={0.8}
+          accessibilityLabel="Nova Transação"
+        >
+          <Text style={styles.fabText}>+</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Pílula Principal da Navbar com 3 Abas Simétricas e Alto Destaque */}
       <View style={styles.pillBar}>
         {renderItem(ITEMS[0])}
         {renderItem(ITEMS[1])}
-
-        {/* Botão "+" Centralizado na Pílula */}
-        <View style={styles.fabSlot}>
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={onAdd}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.fabText}>+</Text>
-          </TouchableOpacity>
-        </View>
-
         {renderItem(ITEMS[2])}
       </View>
     </View>
@@ -61,38 +68,53 @@ export const TabBar: React.FC<{
 
 const styles = StyleSheet.create({
   outerContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: spacing.lg,
-    paddingTop: 6,
+    paddingTop: 4,
     paddingBottom: Platform.select({
       ios: 26,
-      android: 20,
+      android: 22,
       default: 16,
     }),
     backgroundColor: "transparent",
     alignItems: "center",
+    zIndex: 50,
+  },
+  floatingFabRow: {
+    width: "100%",
+    maxWidth: 460,
+    alignItems: "flex-end", // Canto inferior direito acima da navbar
+    justifyContent: "center",
+    marginBottom: 12,
+    paddingRight: 4,
+    zIndex: 20,
   },
   pillBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     width: "100%",
     maxWidth: 460,
     backgroundColor: "#FFFFFF",
     borderRadius: 999,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
+    borderWidth: 2,
+    borderColor: "#CBD5E1", // Slate 300 - borda mais forte e destacada
     ...Platform.select({
       web: {
-        boxShadow: "0 10px 28px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.06)",
+        boxShadow:
+          "0 14px 32px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08)",
       } as any,
       default: {
         shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.14,
-        shadowRadius: 14,
-        elevation: 14,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+        elevation: 18,
       },
     }),
   },
@@ -100,59 +122,65 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 2,
-  },
-  fabSlot: {
-    paddingHorizontal: spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconWrap: {
-    paddingHorizontal: 14,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: radius.pill,
-    marginBottom: 2,
+  },
+  itemActive: {},
+  iconWrap: {
+    paddingHorizontal: 18,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    marginBottom: 4,
+    backgroundColor: "#F1F5F9", // Fundo sutil mesmo nos inativos para dar destaque
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   iconWrapActive: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.primary, // Azul forte na aba ativa
+    borderColor: colors.primaryDark,
   },
-  icon: { fontSize: 19 },
+  icon: {
+    fontSize: 20,
+  },
+  iconInactive: {
+    opacity: 0.9,
+  },
   label: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: "600",
+    color: "#1E293B", // Slate 800 - alto contraste para fácil leitura
+    fontSize: 12.5,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   labelActive: {
-    color: colors.primary,
-    fontWeight: "800",
+    color: colors.primaryDark,
+    fontWeight: "900",
+    fontSize: 13,
   },
   fab: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary, // Preenchido de azul
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
       web: {
-        boxShadow: "0 6px 16px rgba(37, 99, 235, 0.4)",
+        boxShadow: "0 8px 20px rgba(37, 99, 235, 0.45)",
       } as any,
       default: {
-        shadowColor: "#2563EB",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
-        elevation: 8,
+        shadowColor: "#1D4ED8",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.38,
+        shadowRadius: 10,
+        elevation: 12,
       },
     }),
   },
   fabText: {
-    color: colors.white,
-    fontSize: 26,
-    fontWeight: "600",
-    lineHeight: 28,
-    marginTop: -1,
+    color: colors.white, // "+" em branco
+    fontSize: 30,
+    fontWeight: "700",
+    lineHeight: 32,
+    marginTop: -2,
   },
 });
-
-
