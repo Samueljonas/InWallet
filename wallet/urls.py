@@ -1,4 +1,5 @@
 from django.urls import path, include
+from users import api_views as users_api_views
 from . import views
 from . import api_views
 
@@ -8,6 +9,9 @@ app_name = 'wallet'
 # REST API URLs (JSON for Android & React Web)
 # ----------------------------------------------------
 api_patterns = [
+    # Account Deletion (LGPD Art. 18 & App Store / Play Store Policy)
+    path('auth/account/', users_api_views.DeleteAccountAPIView.as_view(), name='api_delete_account'),
+
     # Dashboard
     path('dashboard/', api_views.DashboardAPIView.as_view(), name='api_dashboard'),
 

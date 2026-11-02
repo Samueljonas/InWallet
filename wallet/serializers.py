@@ -16,6 +16,22 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'balance']
         extra_kwargs = {'balance': {'required': False}}
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and not self.instance:
+            installments = attrs.get('installments', 1)
+            installment_mode = attrs.get('installment_mode', 'single')
+            if installments > 1 or installment_mode != 'single':
+                profile = getattr(request.user, 'profile', None)
+                if not profile:
+                    from users.models import UserProfile
+                    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                if not profile.is_pro:
+                    raise serializers.ValidationError({
+                        "installments": "Lançamentos parcelados e recorrentes são exclusivos do plano Pro. Faça upgrade para desbloquear."
+                    })
+        return attrs
+
     def update(self, instance, validated_data):
         validated_data.pop('balance', None)
         return super().update(instance, validated_data)
@@ -138,6 +154,22 @@ class TransactionSerializer(serializers.ModelSerializer):
             installments=installments,
             installment_mode=installment_mode,
         )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and not self.instance:
+            installments = attrs.get('installments', 1)
+            installment_mode = attrs.get('installment_mode', 'single')
+            if installments > 1 or installment_mode != 'single':
+                profile = getattr(request.user, 'profile', None)
+                if not profile:
+                    from users.models import UserProfile
+                    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                if not profile.is_pro:
+                    raise serializers.ValidationError({
+                        "installments": "Lançamentos parcelados e recorrentes são exclusivos do plano Pro. Faça upgrade para desbloquear."
+                    })
+        return attrs
 
     def update(self, instance, validated_data):
         validated_data.pop('installments', None)

@@ -12,6 +12,8 @@ app_name = 'users'
 api_auth_patterns = [
     path('register/', api_views.RegisterAPIView.as_view(), name='api_register'),
     path('me/', api_views.CurrentUserProfileAPIView.as_view(), name='api_me'),
+    path('account/', api_views.DeleteAccountAPIView.as_view(), name='api_delete_account'),
+    path('subscription/upgrade/', api_views.UpgradePlanAPIView.as_view(), name='api_subscription_upgrade'),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
