@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -21,6 +23,8 @@ import {
   Screen,
   SectionTitle,
 } from "../components/ui";
+import { LegalDocType, LegalModal } from "../components/LegalModal";
+import { UpgradeModal } from "../components/UpgradeModal";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import {
   confirmAction,
@@ -77,7 +81,11 @@ const ItemRow: React.FC<RowProps> = (p) => (
           <View
             style={[
               styles.rowBadge,
-              { backgroundColor: p.badgeColor ? `${p.badgeColor}18` : colors.surfaceAlt },
+              {
+                backgroundColor: p.badgeColor
+                  ? `${p.badgeColor}18`
+                  : colors.surfaceAlt,
+              },
             ]}
           >
             <Text
@@ -94,6 +102,8 @@ const ItemRow: React.FC<RowProps> = (p) => (
           onPress={p.onStartEdit}
           hitSlop={8}
           style={styles.iconBtn}
+          accessibilityLabel="Editar lançamento"
+          accessibilityRole="button"
         >
           <Text style={styles.icon}>✏️</Text>
         </TouchableOpacity>
@@ -101,6 +111,8 @@ const ItemRow: React.FC<RowProps> = (p) => (
           onPress={p.onDelete}
           hitSlop={8}
           style={styles.iconBtn}
+          accessibilityLabel="Excluir lançamento"
+          accessibilityRole="button"
         >
           <Text style={styles.icon}>🗑</Text>
         </TouchableOpacity>
@@ -113,7 +125,7 @@ export const ManageScreen: React.FC<{
   refreshKey: number;
   onChanged: () => void;
 }> = ({ refreshKey, onChanged }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, deleteAccount } = useAuth();
   const [segment, setSegment] = useState<Segment>("accounts");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -132,6 +144,9 @@ export const ManageScreen: React.FC<{
   const [budgetCatId, setBudgetCatId] = useState<number | null>(null);
   const [budgetAmount, setBudgetAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDocType>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -179,6 +194,10 @@ export const ManageScreen: React.FC<{
 
   async function addAccount() {
     if (!newAccName.trim()) return;
+    if (!user?.is_pro && accounts.length >= 2) {
+      setShowUpgradeModal(true);
+      return;
+    }
     const initial = newAccBalance.trim() ? parseAmount(newAccBalance) : 0;
     if (initial === null || initial < 0) {
       notify("Saldo inválido", "Informe um saldo inicial válido (ex: 150,00).");
@@ -220,6 +239,10 @@ export const ManageScreen: React.FC<{
   }
 
   async function saveBudget() {
+    if (!user?.is_pro) {
+      setShowUpgradeModal(true);
+      return;
+    }
     if (!budgetCatId) {
       notify("Atenção", "Selecione uma categoria de despesa.");
       return;
@@ -290,6 +313,72 @@ export const ManageScreen: React.FC<{
     }
   }
 
+  async function executeAccountDeletion() {
+    try {
+      setDeletingAccount(true);
+      await deleteAccount();
+    } catch (err) {
+      setDeletingAccount(false);
+      notify(
+        "Erro ao excluir conta",
+        extractErrorMessage(
+          err,
+          "Não foi possível concluir a exclusão da conta.",
+        ),
+      );
+    }
+  }
+
+  function handleDeleteAccount() {
+    const firstTitle = "Excluir Minha Conta?";
+    const firstMsg =
+      "Você está prestes a iniciar a exclusão da sua conta no InWallet. Todos os seus dados pessoais, contas bancárias, categorias, metas e transações serão apagados permanentemente (Art. 18 da LGPD). Deseja continuar?";
+    const secondTitle = "Confirmação Definitiva";
+    const secondMsg =
+      "Esta ação é irreversível e não poderá ser desfeita. Tem certeza absoluta de que deseja excluir permanentemente sua conta e todos os seus registros financeiros?";
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`${firstTitle}\n\n${firstMsg}`)) {
+        if (window.confirm(`${secondTitle}\n\n${secondMsg}`)) {
+          executeAccountDeletion();
+        }
+      }
+      return;
+    }
+
+    // 1ª confirmação nativa via Alert.alert
+    Alert.alert(
+      firstTitle,
+      firstMsg,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Continuar",
+          style: "destructive",
+          onPress: () => {
+            // 2ª confirmação nativa via Alert.alert (confirmação dupla obrigatória)
+            Alert.alert(
+              secondTitle,
+              secondMsg,
+              [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Sim, Excluir Permanentemente",
+                  style: "destructive",
+                  onPress: () => {
+                    executeAccountDeletion();
+                  },
+                },
+              ],
+              { cancelable: true },
+            );
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  }
+
   const expenseCats = categories.filter((c) => c.type === "expense");
   const incomeCats = categories.filter((c) => c.type === "income");
 
@@ -313,7 +402,9 @@ export const ManageScreen: React.FC<{
     <Screen fluid>
       <Header
         title="Gestão de Cadastros"
-        subtitle={user ? `Usuário: ${user.username} (${user.email})` : undefined}
+        subtitle={
+          user ? `Usuário: ${user.username} (${user.email})` : undefined
+        }
       />
 
       <ScrollView
@@ -351,7 +442,7 @@ export const ManageScreen: React.FC<{
             }}
           />
           <Chip
-            label="🎯 Metas"
+            label={user?.is_pro ? "🎯 Metas" : "🎯 Metas (PRO)"}
             active={segment === "budgets"}
             count={budgets.length}
             onPress={() => {
@@ -371,7 +462,11 @@ export const ManageScreen: React.FC<{
           <>
             <SectionTitle
               title="Suas Contas"
-              subtitle="Gerencie ou edite os nomes das suas carteiras e contas"
+              subtitle={
+                user?.is_pro
+                  ? "Gerencie suas carteiras e contas bancárias (Ilimitadas no PRO)"
+                  : `Plano Free: ${accounts.length}/2 contas cadastradas`
+              }
             />
             {accounts.length === 0 ? (
               <Card>
@@ -412,7 +507,9 @@ export const ManageScreen: React.FC<{
               <Field
                 label="Saldo Inicial (opcional)"
                 value={newAccBalance}
-                onChangeText={(val) => setNewAccBalance(formatCurrencyInput(val))}
+                onChangeText={(val) =>
+                  setNewAccBalance(formatCurrencyInput(val))
+                }
                 placeholder="0,00"
                 keyboardType="number-pad"
                 hint="O saldo inicial é definido apenas na criação da conta."
@@ -433,7 +530,9 @@ export const ManageScreen: React.FC<{
             />
             {expenseCats.length === 0 ? (
               <Card>
-                <Text style={styles.muted}>Nenhuma categoria de despesa criada.</Text>
+                <Text style={styles.muted}>
+                  Nenhuma categoria de despesa criada.
+                </Text>
               </Card>
             ) : (
               expenseCats.map(renderCategory)
@@ -445,7 +544,9 @@ export const ManageScreen: React.FC<{
             />
             {incomeCats.length === 0 ? (
               <Card>
-                <Text style={styles.muted}>Nenhuma categoria de receita criada.</Text>
+                <Text style={styles.muted}>
+                  Nenhuma categoria de receita criada.
+                </Text>
               </Card>
             ) : (
               incomeCats.map(renderCategory)
@@ -488,6 +589,26 @@ export const ManageScreen: React.FC<{
               title="Metas de Gastos Mensais"
               subtitle="Defina tetos de gastos por categoria e acompanhe no Dashboard"
             />
+            {!user?.is_pro && (
+              <TouchableOpacity
+                style={styles.proUpgradeBanner}
+                onPress={() => setShowUpgradeModal(true)}
+                activeOpacity={0.88}
+              >
+                <View style={styles.proBannerIconWrap}>
+                  <Text style={styles.proBannerIcon}>⭐</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.proBannerTitle}>
+                    Recurso Exclusivo do InWallet PRO
+                  </Text>
+                  <Text style={styles.proBannerDesc}>
+                    Defina limites para cada categoria e receba alertas inteligentes no Dashboard. Toque para desbloquear!
+                  </Text>
+                </View>
+                <Text style={styles.proBannerArrow}>→</Text>
+              </TouchableOpacity>
+            )}
             {budgets.length === 0 ? (
               <Card>
                 <EmptyState
@@ -516,6 +637,8 @@ export const ManageScreen: React.FC<{
                     }}
                     style={styles.iconBtn}
                     hitSlop={8}
+                    accessibilityLabel="Editar lançamento"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.icon}>✏️</Text>
                   </TouchableOpacity>
@@ -523,6 +646,8 @@ export const ManageScreen: React.FC<{
                     onPress={() => removeBudget(bg)}
                     style={styles.iconBtn}
                     hitSlop={8}
+                    accessibilityLabel="Excluir lançamento"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.icon}>🗑</Text>
                   </TouchableOpacity>
@@ -549,7 +674,9 @@ export const ManageScreen: React.FC<{
               <Field
                 label="Limite Mensal (R$)"
                 value={budgetAmount}
-                onChangeText={(val) => setBudgetAmount(formatCurrencyInput(val))}
+                onChangeText={(val) =>
+                  setBudgetAmount(formatCurrencyInput(val))
+                }
                 placeholder="0,00"
                 keyboardType="number-pad"
                 hint="Você verá uma barra de progresso no Dashboard conforme gastar."
@@ -564,6 +691,34 @@ export const ManageScreen: React.FC<{
           </>
         )}
 
+        {/* Documentos Legais e Privacidade (LGPD) */}
+        <SectionTitle
+          title="Privacidade e Termos Legais"
+          subtitle="Transparência sobre seus dados e direitos (LGPD)"
+        />
+        <Card>
+          <View style={styles.legalLinksRow}>
+            <TouchableOpacity
+              style={styles.legalLinkBtn}
+              onPress={() => setLegalDoc("terms")}
+              accessibilityRole="link"
+              accessibilityLabel="Abrir Termos de Uso"
+            >
+              <Text style={styles.legalLinkText}>📄 Termos de Uso</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.legalLinkBtn}
+              onPress={() => setLegalDoc("privacy")}
+              accessibilityRole="link"
+              accessibilityLabel="Abrir Política de Privacidade (LGPD)"
+            >
+              <Text style={styles.legalLinkText}>
+                🔒 Política de Privacidade (LGPD)
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+
         <View style={styles.logoutWrap}>
           <Button
             title="Sair da Conta (Logout)"
@@ -572,7 +727,45 @@ export const ManageScreen: React.FC<{
             style={styles.logoutBtn}
           />
         </View>
+
+        {/* Zona de Exclusão Definitiva de Conta (Art. 18 LGPD & Lojas) */}
+        <View style={styles.dangerCard}>
+          <Text style={styles.dangerTitle}>
+            Zona de Exclusão de Dados (LGPD)
+          </Text>
+          <Text style={styles.dangerDesc}>
+            Ao excluir sua conta, seu usuário e todas as contas bancárias,
+            categorias, metas e transações serão removidos permanentemente dos
+            nossos servidores em cascata.
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.deleteAccountBtn,
+              deletingAccount && { opacity: 0.6 },
+            ]}
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Excluir Minha Conta"
+          >
+            {deletingAccount ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.deleteAccountBtnText}>
+                🗑 Excluir Minha Conta
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+
+      <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSuccess={() => load()}
+      />
     </Screen>
   );
 };
@@ -643,12 +836,104 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: spacing.sm,
   },
+  legalLinksRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  legalLinkBtn: {
+    flex: 1,
+    minWidth: 180,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+  },
+  legalLinkText: {
+    color: colors.primaryDark,
+    fontSize: 13,
+    fontWeight: "700",
+  },
   logoutWrap: {
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
     alignItems: "center",
   },
   logoutBtn: {
     width: "100%",
     borderColor: colors.borderStrong,
+  },
+  dangerCard: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.expenseBg,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.expenseBorder,
+    padding: spacing.lg,
+  },
+  dangerTitle: {
+    color: colors.expense,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  dangerDesc: {
+    color: colors.textMuted,
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: spacing.md,
+  },
+  deleteAccountBtn: {
+    backgroundColor: colors.expense,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteAccountBtnText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  proUpgradeBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  proBannerIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  proBannerIcon: {
+    fontSize: 20,
+  },
+  proBannerTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.primaryDark,
+  },
+  proBannerDesc: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  proBannerArrow: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.primary,
   },
 });

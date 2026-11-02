@@ -104,6 +104,8 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
             style={styles.switchBtn}
             onPress={onNavigateToRegister}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Ainda não tem conta? Cadastre-se gratuitamente"
           >
             <Text style={styles.switchText}>
               Ainda não tem conta?{" "}

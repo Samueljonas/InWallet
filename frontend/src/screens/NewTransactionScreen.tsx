@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { api, fetchAll } from "../api/client";
+import { useAuth } from "../contexts/AuthContext";
+import { UpgradeModal } from "../components/UpgradeModal";
 import { Account, Category, Transaction } from "../types";
 import { Button, Card, Chip, Field, Header, Screen } from "../components/ui";
 import { colors, radius, shadowCard, spacing } from "../theme";
@@ -38,6 +40,8 @@ export const NewTransactionScreen: React.FC<Props> = ({
   onGoBack,
   onSaved,
 }) => {
+  const { user } = useAuth();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [type, setType] = useState<"expense" | "income">(
     editing?.type ?? "expense",
   );
@@ -123,6 +127,10 @@ export const NewTransactionScreen: React.FC<Props> = ({
 
   async function createAccount() {
     if (!newAccountName.trim()) return;
+    if (!user?.is_pro && accounts.length >= 2) {
+      setShowUpgradeModal(true);
+      return;
+    }
     const initial = newAccountBalance.trim()
       ? parseAmount(newAccountBalance)
       : 0;
@@ -251,7 +259,13 @@ export const NewTransactionScreen: React.FC<Props> = ({
               : "Preencha os dados da sua despesa ou receita"
           }
           left={
-            <TouchableOpacity onPress={onGoBack} hitSlop={10} style={styles.backBtn}>
+            <TouchableOpacity
+              onPress={onGoBack}
+              hitSlop={10}
+              style={styles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Voltar"
+            >
               <Text style={styles.back}>←</Text>
             </TouchableOpacity>
           }
@@ -271,6 +285,9 @@ export const NewTransactionScreen: React.FC<Props> = ({
               ]}
               onPress={() => setType("expense")}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Tipo Despesa"
+              accessibilityState={{ selected: isExpense }}
             >
               <Text
                 style={[
@@ -289,6 +306,9 @@ export const NewTransactionScreen: React.FC<Props> = ({
               ]}
               onPress={() => setType("income")}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Tipo Receita"
+              accessibilityState={{ selected: !isExpense }}
             >
               <Text
                 style={[
@@ -461,14 +481,26 @@ export const NewTransactionScreen: React.FC<Props> = ({
                       onPress={() => setInstallmentMode("single")}
                     />
                     <Chip
-                      label="💳 Parcelar valor"
+                      label={user?.is_pro ? "💳 Parcelar valor" : "💳 Parcelar (PRO)"}
                       active={installmentMode === "split"}
-                      onPress={() => setInstallmentMode("split")}
+                      onPress={() => {
+                        if (!user?.is_pro) {
+                          setShowUpgradeModal(true);
+                          return;
+                        }
+                        setInstallmentMode("split");
+                      }}
                     />
                     <Chip
-                      label="🔁 Repetir todo mês"
+                      label={user?.is_pro ? "🔁 Repetir todo mês" : "🔁 Repetir todo mês (PRO)"}
                       active={installmentMode === "repeat"}
-                      onPress={() => setInstallmentMode("repeat")}
+                      onPress={() => {
+                        if (!user?.is_pro) {
+                          setShowUpgradeModal(true);
+                          return;
+                        }
+                        setInstallmentMode("repeat");
+                      }}
                     />
                   </View>
 
@@ -544,6 +576,10 @@ export const NewTransactionScreen: React.FC<Props> = ({
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </Screen>
   );
 };

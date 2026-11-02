@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
+import { LegalDocType, LegalModal } from "../components/LegalModal";
 import { colors, radius, spacing } from "../theme";
 import { extractErrorMessage, extractFieldErrors } from "../utils/format";
 
@@ -24,6 +25,8 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
   const [firstName, setFirstName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDocType>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState("");
@@ -38,6 +41,9 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
     else if (/^\d+$/.test(password))
       e.password = "A senha não pode conter apenas números.";
     if (confirm !== password) e.confirm = "As senhas digitadas não coincidem.";
+    if (!acceptedTerms)
+      e.terms =
+        "É necessário ler e aceitar os Termos de Uso e a Política de Privacidade (LGPD) para criar sua conta.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -132,6 +138,61 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
               onSubmitEditing={handleRegister}
             />
 
+            {/* Consentimento LGPD & Termos de Uso */}
+            <View style={styles.consentContainer}>
+              <View style={styles.consentRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setAcceptedTerms((v) => !v);
+                    if (errors.terms) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.terms;
+                        return next;
+                      });
+                    }
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={8}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: acceptedTerms }}
+                  accessibilityLabel="Confirmar leitura e aceite dos Termos de Uso e Política de Privacidade"
+                  style={[
+                    styles.checkbox,
+                    acceptedTerms && styles.checkboxChecked,
+                    !!errors.terms && styles.checkboxError,
+                  ]}
+                >
+                  {acceptedTerms && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+
+                <Text style={styles.consentText}>
+                  Declaro que li e concordo com os{" "}
+                  <Text
+                    style={styles.consentLink}
+                    onPress={() => setLegalDoc("terms")}
+                    accessibilityRole="link"
+                    accessibilityLabel="Ler Termos de Uso"
+                  >
+                    Termos de Uso
+                  </Text>{" "}
+                  e com a{" "}
+                  <Text
+                    style={styles.consentLink}
+                    onPress={() => setLegalDoc("privacy")}
+                    accessibilityRole="link"
+                    accessibilityLabel="Ler Política de Privacidade"
+                  >
+                    Política de Privacidade (LGPD)
+                  </Text>
+                  .
+                </Text>
+              </View>
+              {!!errors.terms && (
+                <Text style={styles.termsError}>{errors.terms}</Text>
+              )}
+            </View>
+
             <Button
               title="Cadastrar e Acessar"
               onPress={handleRegister}
@@ -144,6 +205,8 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
             style={styles.switchBtn}
             onPress={onNavigateToLogin}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Já possui uma conta? Fazer login"
           >
             <Text style={styles.switchText}>
               Já possui uma conta? <Text style={styles.switchBold}>Fazer login</Text>
@@ -151,6 +214,21 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LegalModal
+        doc={legalDoc}
+        onClose={() => setLegalDoc(null)}
+        onAccept={() => {
+          setAcceptedTerms(true);
+          if (errors.terms) {
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.terms;
+              return next;
+            });
+          }
+        }}
+      />
     </Screen>
   );
 };
@@ -195,6 +273,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     textAlign: "center",
+  },
+  consentContainer: {
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primaryDark,
+  },
+  checkboxError: {
+    borderColor: colors.expense,
+  },
+  checkmark: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  consentText: {
+    flex: 1,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  consentLink: {
+    color: colors.primaryDark,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+  termsError: {
+    color: colors.expense,
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: spacing.xs,
   },
   switchBtn: {
     alignItems: "center",

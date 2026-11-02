@@ -22,6 +22,8 @@ export const MonthSelector: React.FC<{
         style={styles.arrow}
         onPress={() => shift(-1)}
         hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Mês anterior"
       >
         <Text style={styles.arrowText}>‹</Text>
       </TouchableOpacity>
@@ -29,6 +31,8 @@ export const MonthSelector: React.FC<{
         style={{ flex: 1, alignItems: "center" }}
         onPress={() => onChange(now.getFullYear(), now.getMonth() + 1)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${MONTH_NAMES[month - 1]} de ${year}. Toque para voltar ao mês atual`}
       >
         <Text style={styles.label}>
           {MONTH_NAMES[month - 1]} {year}
@@ -44,6 +48,9 @@ export const MonthSelector: React.FC<{
         onPress={() => shift(1)}
         disabled={isCurrent}
         hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Próximo mês"
+        accessibilityState={{ disabled: isCurrent }}
       >
         <Text style={styles.arrowText}>›</Text>
       </TouchableOpacity>

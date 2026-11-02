@@ -1,9 +1,74 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeModules, Platform } from "react-native";
 
-export const TOKEN_KEY = "@inwallet:token";
-export const REFRESH_KEY = "@inwallet:refresh";
+// Chaves compatíveis com o padrão do Keychain/KeyStore nativo (apenas alfanuméricos, ".", "-" e "_")
+export const TOKEN_KEY = "inwallet_access_token";
+export const REFRESH_KEY = "inwallet_refresh_token";
+const LEGACY_TOKEN_KEY = "@inwallet:token";
+const LEGACY_REFRESH_KEY = "@inwallet:refresh";
+
+const SECURE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
+
+/**
+ * Lê um item do armazenamento seguro criptografado (Keychain no iOS / EncryptedSharedPreferences + KeyStore no Android).
+ * No ambiente Web, onde o hardware KeyStore não está disponível, utiliza fallback controlado.
+ */
+export async function getSecureItem(key: string): Promise<string | null> {
+  try {
+    if (Platform.OS !== "web") {
+      return await SecureStore.getItemAsync(key, SECURE_OPTIONS);
+    }
+    return await AsyncStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Salva um token de forma criptografada no armazenamento seguro nativo.
+ */
+export async function setSecureItem(key: string, value: string): Promise<void> {
+  if (Platform.OS !== "web") {
+    await SecureStore.setItemAsync(key, value, SECURE_OPTIONS);
+    return;
+  }
+  await AsyncStorage.setItem(key, value);
+}
+
+/**
+ * Remove um item do armazenamento seguro nativo.
+ */
+export async function deleteSecureItem(key: string): Promise<void> {
+  try {
+    if (Platform.OS !== "web") {
+      await SecureStore.deleteItemAsync(key, SECURE_OPTIONS);
+    } else {
+      await AsyncStorage.removeItem(key);
+    }
+  } catch {
+    // Ignora falhas de limpeza se a chave já não existir
+  }
+}
+
+/**
+ * Remove todos os tokens de sessão do SecureStore e limpa eventuais resíduos legados do AsyncStorage.
+ */
+export async function clearAuthTokens(): Promise<void> {
+  await Promise.all([
+    deleteSecureItem(TOKEN_KEY),
+    deleteSecureItem(REFRESH_KEY),
+    AsyncStorage.multiRemove([
+      TOKEN_KEY,
+      REFRESH_KEY,
+      LEGACY_TOKEN_KEY,
+      LEGACY_REFRESH_KEY,
+    ]).catch(() => {}),
+  ]);
+}
 
 /**
  * Descobre a URL do backend:
@@ -44,7 +109,7 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 }
 
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem(TOKEN_KEY);
+  const token = await getSecureItem(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -54,7 +119,7 @@ api.interceptors.request.use(async (config) => {
 let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refresh = await AsyncStorage.getItem(REFRESH_KEY);
+  const refresh = await getSecureItem(REFRESH_KEY);
   if (!refresh) return null;
   try {
     const res = await axios.post(
@@ -65,8 +130,8 @@ async function refreshAccessToken(): Promise<string | null> {
       access: string;
       refresh?: string;
     };
-    await AsyncStorage.setItem(TOKEN_KEY, access);
-    if (newRefresh) await AsyncStorage.setItem(REFRESH_KEY, newRefresh);
+    await setSecureItem(TOKEN_KEY, access);
+    if (newRefresh) await setSecureItem(REFRESH_KEY, newRefresh);
     return access;
   } catch {
     return null;
@@ -79,27 +144,28 @@ api.interceptors.response.use(
     const original = error.config as
       | (InternalAxiosRequestConfig & { _retry?: boolean })
       | undefined;
-    const isAuthCall = original?.url?.includes("/auth/token");
+    const url = original?.url ?? "";
+    const isLoginOrRegisterCall =
+      url.endsWith("/auth/token/") || url.includes("/auth/register/");
 
-    if (
-      error.response?.status === 401 &&
-      original &&
-      !original._retry &&
-      !isAuthCall
-    ) {
-      original._retry = true;
-      refreshPromise =
-        refreshPromise ??
-        refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-      const newToken = await refreshPromise;
+    if (error.response?.status === 401 && !isLoginOrRegisterCall) {
+      if (original && !original._retry && !url.includes("/auth/token/refresh/")) {
+        original._retry = true;
+        refreshPromise =
+          refreshPromise ??
+          refreshAccessToken().finally(() => {
+            refreshPromise = null;
+          });
+        const newToken = await refreshPromise;
 
-      if (newToken) {
-        original.headers.Authorization = `Bearer ${newToken}`;
-        return api(original);
+        if (newToken) {
+          original.headers.Authorization = `Bearer ${newToken}`;
+          return api(original);
+        }
       }
-      await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY]);
+
+      // Sessão inválida ou expirada definitivamente: limpa o armazenamento seguro e redireciona ao login
+      await clearAuthTokens();
       onUnauthorized?.();
     }
     return Promise.reject(error);

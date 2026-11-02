@@ -10,11 +10,14 @@ export const TransactionRow: React.FC<{
   onDelete?: () => void;
 }> = ({ tx, onPress, onDelete }) => {
   const isExpense = tx.type === "expense";
+  const txTitle = tx.description || tx.category_name || "Sem descrição";
   return (
     <TouchableOpacity
       style={[styles.row, shadowCard]}
       activeOpacity={0.7}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${isExpense ? "Despesa" : "Receita"}: ${txTitle}, ${formatCurrency(tx.amount)} em ${formatDate(tx.date)}`}
     >
       <View
         style={[
@@ -36,7 +39,7 @@ export const TransactionRow: React.FC<{
       </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
-          {tx.description || tx.category_name || "Sem descrição"}
+          {txTitle}
         </Text>
         <View style={styles.metaRow}>
           {!!tx.category_name && (
@@ -58,16 +61,27 @@ export const TransactionRow: React.FC<{
         >
           {isExpense ? "-" : "+"} {formatCurrency(tx.amount)}
         </Text>
-        {onPress && <Text style={styles.editHint}>editar</Text>}
       </View>
+      {onPress && (
+        <TouchableOpacity
+          onPress={onPress}
+          hitSlop={10}
+          style={styles.actionBtn}
+          accessibilityLabel="Editar lançamento"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionIcon}>✏️</Text>
+        </TouchableOpacity>
+      )}
       {onDelete && (
         <TouchableOpacity
           onPress={onDelete}
           hitSlop={10}
           style={styles.deleteBtn}
-          accessibilityLabel="Excluir transação"
+          accessibilityLabel="Excluir lançamento"
+          accessibilityRole="button"
         >
-          <Text style={styles.deleteText}>✕</Text>
+          <Text style={styles.deleteText}>🗑</Text>
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -105,19 +119,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   pillText: { color: colors.textMuted, fontSize: 11, fontWeight: "600" },
-  sub: { color: colors.textFaint, fontSize: 12 },
-  rightSide: { alignItems: "flex-end" },
+  sub: { color: colors.textFaint, fontSize: 12, fontWeight: "500" },
+  rightSide: { alignItems: "flex-end", marginRight: 4 },
   amount: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
-  editHint: { color: colors.primary, fontSize: 11, fontWeight: "600", marginTop: 2 },
-  deleteBtn: {
-    width: 28,
-    height: 28,
+  actionBtn: {
+    width: 30,
+    height: 30,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: spacing.sm,
+    marginLeft: spacing.xs,
   },
-  deleteText: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
+  actionIcon: { fontSize: 13 },
+  deleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.pill,
+    backgroundColor: colors.expenseBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: spacing.xs,
+  },
+  deleteText: { color: colors.expense, fontSize: 13, fontWeight: "700" },
 });
 

@@ -8,9 +8,12 @@ import React, {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   api,
+  clearAuthTokens,
+  getSecureItem,
   REFRESH_KEY,
-  TOKEN_KEY,
+  setSecureItem,
   setUnauthorizedHandler,
+  TOKEN_KEY,
 } from "../api/client";
 import { User } from "../types";
 
@@ -27,6 +30,8 @@ interface AuthContextData {
     lastName?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -38,12 +43,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY]);
+    await clearAuthTokens();
+    setUser(null);
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    await api.delete("/api/v1/auth/account/");
+    await clearAuthTokens();
+    await AsyncStorage.clear().catch(() => {});
     setUser(null);
   }, []);
 
   useEffect(() => {
-    // Sessão expirou de vez (refresh falhou): volta para o login.
+    // Sessão expirou de vez (refresh falhou ou 401): volta para o login.
     setUnauthorizedHandler(() => setUser(null));
     loadStoredAuth();
     return () => setUnauthorizedHandler(null);
@@ -51,18 +63,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   async function loadStoredAuth() {
     try {
-      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      const token = await getSecureItem(TOKEN_KEY);
       if (token) {
         const response = await api.get<User>("/accounts/api/v1/auth/me/");
         setUser(response.data);
       }
     } catch {
-      await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY]);
+      await clearAuthTokens();
       setUser(null);
     } finally {
       setIsLoading(false);
     }
   }
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await api.get<User>("/accounts/api/v1/auth/me/");
+      setUser(response.data);
+    } catch {
+      // Falha silenciosa se houver erro temporário de rede
+    }
+  }, []);
 
   async function login(username: string, password: string) {
     const response = await api.post<{ access: string; refresh: string }>(
@@ -73,8 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     );
     const { access, refresh } = response.data;
-    await AsyncStorage.setItem(TOKEN_KEY, access);
-    await AsyncStorage.setItem(REFRESH_KEY, refresh);
+    await setSecureItem(TOKEN_KEY, access);
+    await setSecureItem(REFRESH_KEY, refresh);
 
     const profile = await api.get<User>("/accounts/api/v1/auth/me/");
     setUser(profile.data);
@@ -106,6 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         register,
         logout,
+        deleteAccount,
+        refreshUser,
       }}
     >
       {children}

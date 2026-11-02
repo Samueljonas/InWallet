@@ -29,6 +29,9 @@ export const TabBar: React.FC<{
         style={[styles.item, active && styles.itemActive]}
         onPress={() => onChange(item.key)}
         activeOpacity={0.75}
+        accessibilityRole="tab"
+        accessibilityLabel={item.label}
+        accessibilityState={{ selected: active }}
       >
         <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
           <Text style={[styles.icon, !active && styles.iconInactive]}>
@@ -50,7 +53,8 @@ export const TabBar: React.FC<{
           style={styles.fab}
           onPress={onAdd}
           activeOpacity={0.8}
-          accessibilityLabel="Nova Transação"
+          accessibilityLabel="Adicionar nova transação"
+          accessibilityRole="button"
         >
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
