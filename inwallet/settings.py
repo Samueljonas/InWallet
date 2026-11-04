@@ -8,11 +8,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DEBUG=(bool, True),
     SECRET_KEY=(str, 'django-insecure-default-change-me-in-production-1234567890'),
+    DATABASE_URL=(str, ''),
     DB_NAME=(str, ''),
     DB_USER=(str, ''),
     DB_PASS=(str, ''),
     DB_HOST=(str, 'localhost'),
     DB_PORT=(str, '5432'),
+    PAYMENT_WEBHOOK_SECRET=(str, ''),
+    PIX_MERCHANT_KEY=(str, 'pagamentos@inwallet.app'),
+    PIX_MERCHANT_CITY=(str, 'SAO PAULO'),
+    EMAIL_HOST=(str, ''),
+    EMAIL_PORT=(int, 587),
+    EMAIL_HOST_USER=(str, ''),
+    EMAIL_HOST_PASSWORD=(str, ''),
+    EMAIL_USE_TLS=(bool, True),
+    DEFAULT_FROM_EMAIL=(str, 'InWallet <noreply@inwallet.app>'),
 )
 environ.Env.read_env(BASE_DIR / '.env')
 
@@ -70,8 +80,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'inwallet.wsgi.application'
 
-# Database Configuration with SQLite Fallback for local development/testing
-if env('DB_NAME'):
+# Database Configuration (DATABASE_URL -> PostgreSQL vars -> SQLite Fallback)
+if env('DATABASE_URL'):
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(env('DATABASE_URL'), conn_max_age=600)
+    }
+elif env('DB_NAME'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -80,6 +95,7 @@ if env('DB_NAME'):
             'PASSWORD': env('DB_PASS'),
             'HOST': env('DB_HOST'),
             'PORT': env('DB_PORT'),
+            'CONN_MAX_AGE': 60,
         }
     }
 else:
@@ -111,7 +127,23 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'wallet:dashboard'
 LOGOUT_REDIRECT_URL = 'login'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Email Configuration (SMTP in production if EMAIL_HOST is set, Console in dev)
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+if env('EMAIL_HOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST')
+    EMAIL_PORT = env('EMAIL_PORT')
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+    EMAIL_USE_TLS = env('EMAIL_USE_TLS')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Payment Gateway Settings
+PAYMENT_WEBHOOK_SECRET = env('PAYMENT_WEBHOOK_SECRET')
+PIX_MERCHANT_KEY = env('PIX_MERCHANT_KEY')
+PIX_MERCHANT_CITY = env('PIX_MERCHANT_CITY')
 
 # REST Framework Configuration (Stateless JWT + Browsable Session + Rate Limiting)
 REST_FRAMEWORK = {
@@ -155,12 +187,15 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://localhost:19006",  # Expo Web
-    "http://localhost:8081",   # Metro Bundler / React Native
-]
+CORS_ALLOWED_ORIGINS = env.list(
+    'CORS_ALLOWED_ORIGINS',
+    default=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://localhost:19006",  # Expo Web
+        "http://localhost:8081",   # Metro Bundler / React Native
+    ],
+)
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOW_CREDENTIALS = True
