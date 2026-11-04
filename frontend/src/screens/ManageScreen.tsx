@@ -148,6 +148,11 @@ export const ManageScreen: React.FC<{
   const [legalDoc, setLegalDoc] = useState<LegalDocType>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const load = useCallback(async () => {
     try {
       const [accs, cats, bgs] = await Promise.all([
@@ -310,6 +315,37 @@ export const ManageScreen: React.FC<{
       onChanged();
     } catch (err) {
       notify("Não foi possível excluir", extractErrorMessage(err));
+    }
+  }
+
+  async function handleChangePassword() {
+    if (!oldPassword || !newPassword) {
+      notify("Atenção", "Preencha a senha atual e a nova senha.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      notify("Senha curta", "A nova senha deve conter no mínimo 8 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      notify("Atenção", "A confirmação da nova senha não coincide.");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      await api.post("/accounts/api/v1/auth/password-change/", {
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      notify("Senha atualizada", "Sua senha foi alterada com sucesso.");
+    } catch (err) {
+      notify("Erro ao alterar senha", extractErrorMessage(err));
+    } finally {
+      setChangingPassword(false);
     }
   }
 
@@ -690,6 +726,41 @@ export const ManageScreen: React.FC<{
             </Card>
           </>
         )}
+
+        {/* Segurança da Conta — Alteração de Senha */}
+        <SectionTitle
+          title="Segurança da Conta"
+          subtitle="Altere sua senha de acesso quando desejar"
+        />
+        <Card>
+          <Field
+            label="Senha atual"
+            placeholder="Sua senha em uso"
+            value={oldPassword}
+            onChangeText={setOldPassword}
+            secure
+          />
+          <Field
+            label="Nova senha"
+            placeholder="Mínimo de 8 caracteres"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secure
+          />
+          <Field
+            label="Confirmar nova senha"
+            placeholder="Repita a nova senha"
+            value={confirmNewPassword}
+            onChangeText={setConfirmNewPassword}
+            secure
+          />
+          <Button
+            title="Atualizar Senha"
+            onPress={handleChangePassword}
+            loading={changingPassword}
+            style={{ marginTop: spacing.lg }}
+          />
+        </Card>
 
         {/* Documentos Legais e Privacidade (LGPD) */}
         <SectionTitle
