@@ -1,94 +1,98 @@
 import { Platform, StatusBar } from "react-native";
 
+/**
+ * Design System — Midnight Navy & Royal Blue
+ * Paleta oficial:
+ * - #0A0F1E (Deep Midnight Navy)
+ * - #1B2A41 (Dark Slate Navy)
+ * - #3B82F6 (Vibrant Royal Blue)
+ * - #94A3B8 (Cool Muted Slate)
+ * - #E2E8F0 (Crisp Light Slate)
+ */
 export const colors = {
-  // Fundos & Superfícies (Clean & Frio)
-  bg: "#F8FAFC", // Slate 50 - Fundo geral limpo e descansado
-  surface: "#FFFFFF", // Branco puro para cards principais
-  surfaceAlt: "#F1F5F9", // Slate 100 - Fundos de inputs, chips secundários
-  surfaceSubtle: "#F8FAFC",
-  surfaceHover: "#E2E8F0", // Slate 200
+  // Fundos & Superfícies (Midnight Navy & Dark Slate)
+  bg: "#0A0F1E", // Deep Midnight Navy — Fundo principal da aplicação
+  surface: "#1B2A41", // Dark Slate Navy — Cards principais, barras e modais
+  surfaceAlt: "#111C2E", // Superfície rebaixada para inputs, chips inativos e blocos internos
+  surfaceSubtle: "#0E1628", // Fundo intermediário sutil
+  surfaceHover: "#243754", // Estado de hover/press em superfícies
 
-  // Bordas sutis e limpas
-  border: "#E2E8F0", // Slate 200
-  borderStrong: "#CBD5E1", // Slate 300
-  borderFocus: "#2563EB",
+  // Bordas minimalistas (1px sutil)
+  border: "rgba(148, 163, 184, 0.14)",
+  borderStrong: "rgba(148, 163, 184, 0.24)",
+  borderFocus: "#3B82F6",
 
-  // Tipografia (Slate de alto contraste — WCAG 2.1 AA >= 4.5:1 garantido em fundos brancos e cinzas)
-  text: "#0F172A", // Slate 900 - Títulos e valores (17.8:1 no branco, 16.3:1 no cinza)
-  textMuted: "#334155", // Slate 700 - Subtítulos e rótulos (10.4:1 no branco, 9.5:1 no cinza)
-  textFaint: "#475569", // Slate 600 - Datas, dicas e placeholders (7.58:1 no branco, 6.95:1 no cinza)
+  // Tipografia (Crisp Light Slate & Cool Muted Slate — contraste WCAG AA)
+  text: "#E2E8F0", // Crisp Light Slate — Títulos e valores principais
+  textMuted: "#94A3B8", // Cool Muted Slate — Subtítulos, labels e descrições
+  textFaint: "#64748B", // Datas secundárias, dicas e placeholders
 
-  // Azul Fintech (Identidade Primária)
-  primary: "#2563EB", // Blue 600 - Azul vibrante e corporativo (5.64:1 com texto branco)
-  primaryLight: "#3B82F6", // Blue 500
-  primaryDark: "#1D4ED8", // Blue 700 (6.70:1 no branco, 6.30:1 no azul claro)
-  primarySoft: "#EFF6FF", // Blue 50 - Fundos suaves com destaque
-  primaryBorder: "#BFDBFE", // Blue 200
+  // Acento Primário (Vibrant Royal Blue)
+  primary: "#3B82F6", // Royal Blue principal
+  primaryLight: "#60A5FA",
+  primaryDark: "#2563EB",
+  primarySoft: "rgba(59, 130, 246, 0.14)",
+  primaryBorder: "rgba(59, 130, 246, 0.32)",
 
-  // Cores Financeiras (Alto contraste WCAG AA >= 4.5:1 em fundos claros)
-  income: "#047857", // Emerald 700 (5.55:1 no branco, 5.35:1 no Emerald 50)
-  incomeBg: "#ECFDF5", // Emerald 50
-  incomeBorder: "#A7F3D0",
-  expense: "#B91C1C", // Red 700 (6.65:1 no branco, 6.11:1 no Red 50)
-  expenseBg: "#FEF2F2", // Red 50
-  expenseBorder: "#FECACA",
+  // Cores Semânticas Financeiras (Sóbrias e Elegantes)
+  income: "#10B981", // Emerald
+  incomeBg: "rgba(16, 185, 129, 0.12)",
+  incomeBorder: "rgba(16, 185, 129, 0.28)",
+  expense: "#F43F5E", // Rose
+  expenseBg: "rgba(244, 63, 94, 0.12)",
+  expenseBorder: "rgba(244, 63, 94, 0.28)",
 
-  // Neutros auxiliares
-  white: "#FFFFFF",
-  slate800: "#1E293B",
-  slate900: "#0F172A",
+  // Neutros de contraste
+  white: "#FFFFFF", // Texto puro sobre botões primários (#3B82F6)
+  slate800: "#1B2A41",
+  slate900: "#0A0F1E",
 };
 
-// Paleta fria e harmônica de alto contraste (>= 5.4:1 sobre fundo claro)
 export const chartPalette = [
-  "#1D4ED8", // Blue 700
-  "#0369A1", // Sky 700
-  "#4338CA", // Indigo 700
-  "#0F766E", // Teal 700
-  "#1E40AF", // Blue 800
-  "#334155", // Slate 700
-  "#6D28D9", // Violet 700
+  "#3B82F6", // Royal Blue
+  "#38BDF8", // Sky Blue
+  "#818CF8", // Indigo
+  "#2DD4BF", // Teal
+  "#60A5FA", // Light Blue
+  "#94A3B8", // Cool Slate
+  "#A78BFA", // Violet
 ];
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
-export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 };
+export const radius = { sm: 8, md: 12, lg: 14, xl: 18, pill: 999 };
 
-/** Sombra sutil multiplataforma para dar profundidade aos cards */
+/** Sombra discreta para profundidade em tema escuro */
 export const shadowCard = Platform.select({
   web: {
-    boxShadow:
-      "0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04)",
+    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.28)",
   } as any,
   default: {
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
 });
 
-/** Sombra destacada para o card de saldo principal */
+/** Sombra destacada para modais e card principal */
 export const shadowHero = Platform.select({
   web: {
-    boxShadow:
-      "0 10px 25px -5px rgba(37, 99, 235, 0.18), 0 8px 10px -6px rgba(37, 99, 235, 0.12)",
+    boxShadow: "0 12px 32px rgba(0, 0, 0, 0.45)",
   } as any,
   default: {
-    shadowColor: "#2563EB",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
   },
 });
 
-/** Largura máxima do conteúdo (deixa a versão web com cara de app moderno). */
 export const maxContentWidth = 720;
 
-/** Espaço do topo para não ficar embaixo da barra de status. */
 export const topInset = Platform.select({
   ios: 56,
   android: (StatusBar.currentHeight ?? 24) + 12,
-  default: 20,
+  default: 24,
 }) as number;
