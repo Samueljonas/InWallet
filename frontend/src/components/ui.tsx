@@ -161,6 +161,8 @@ export const Field: React.FC<
   );
 };
 
+export const Input = Field;
+
 export const Card: React.FC<{
   children: ReactNode;
   style?: StyleProp<ViewStyle>;

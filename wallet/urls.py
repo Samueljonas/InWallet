@@ -12,11 +12,15 @@ api_patterns = [
     # Account Deletion (LGPD Art. 18 & App Store / Play Store Policy)
     path('auth/account/', users_api_views.DeleteAccountAPIView.as_view(), name='api_delete_account'),
 
+    # Healthcheck (Deploy / Docker / Cloud)
+    path('health/', api_views.HealthCheckAPIView.as_view(), name='api_health'),
+
     # Dashboard
     path('dashboard/', api_views.DashboardAPIView.as_view(), name='api_dashboard'),
 
     # Transactions
     path('transactions/', api_views.TransactionListCreateAPIView.as_view(), name='api_transactions_list'),
+    path('transactions/import/', api_views.StatementImportAPIView.as_view(), name='api_transactions_import'),
     path('transactions/<int:pk>/', api_views.TransactionDetailAPIView.as_view(), name='api_transaction_detail'),
 
     # Accounts

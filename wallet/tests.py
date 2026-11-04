@@ -255,3 +255,66 @@ class WalletApiImprovementsTests(APITestCase):
         self.assertEqual(len(res.data['results']), 1)
         res = self.client.get(f'/api/v1/transactions/?year={today.year}&month={today.month}')
         self.assertEqual(len(res.data['results']), 2)
+
+    def test_statement_import_csv_and_deduplication(self):
+        acc = Account.objects.create(user=self.user, name='Conta Nubank', balance=Decimal('100.00'))
+        csv_content = (
+            "Data,Valor,Identificador,Descrição\n"
+            "2026-11-01,2500.00,tx-001,Salário Mensal\n"
+            "2026-11-02,-50.00,tx-002,Uber Viagem\n"
+        )
+        res1 = self.client.post(
+            '/api/v1/transactions/import/',
+            {'account': acc.id, 'filename': 'nubank.csv', 'content': csv_content},
+            format='json',
+        )
+        self.assertEqual(res1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res1.data['imported_count'], 2)
+        self.assertEqual(res1.data['skipped_count'], 0)
+        acc.refresh_from_db()
+        self.assertEqual(acc.balance, Decimal('2550.00'))
+
+        # Reimportar o mesmo arquivo não deve duplicar transações nem alterar saldo
+        res2 = self.client.post(
+            '/api/v1/transactions/import/',
+            {'account': acc.id, 'filename': 'nubank.csv', 'content': csv_content},
+            format='json',
+        )
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        self.assertEqual(res2.data['imported_count'], 0)
+        self.assertEqual(res2.data['skipped_count'], 2)
+        acc.refresh_from_db()
+        self.assertEqual(acc.balance, Decimal('2550.00'))
+
+    def test_statement_import_ofx(self):
+        acc = Account.objects.create(user=self.user, name='Conta Itaú', balance=Decimal('500.00'))
+        ofx_content = """
+        <OFX>
+          <BANKTRANLIST>
+            <STMTTRN>
+              <TRNTYPE>DEBIT
+              <DTPOSTED>20261103100000[-3:BRT]
+              <TRNAMT>-120.00
+              <FITID>OFX20261103001
+              <MEMO>SUPERMERCADO CARREFOUR
+            </STMTTRN>
+          </BANKTRANLIST>
+        </OFX>
+        """
+        res = self.client.post(
+            '/api/v1/transactions/import/',
+            {'account': acc.id, 'filename': 'extrato.ofx', 'content': ofx_content},
+            format='json',
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['imported_count'], 1)
+        acc.refresh_from_db()
+        self.assertEqual(acc.balance, Decimal('380.00'))
+
+    def test_healthcheck_endpoint(self):
+        self.client.force_authenticate(user=None)
+        res = self.client.get('/api/v1/health/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['status'], 'ok')
+        self.assertEqual(res.data['database'], 'connected')
+

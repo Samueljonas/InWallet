@@ -58,7 +58,6 @@ class DeleteAccountAPIView(APIView):
 class UpgradePlanAPIView(APIView):
     """
     Endpoint para ativação/renovação do plano PRO do usuário.
-    Na Fase 4 este fluxo é acionado ou validado pelo Webhook do Gateway (Stripe/Asaas).
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -80,6 +79,144 @@ class UpgradePlanAPIView(APIView):
             'plan_expires_at': profile.plan_expires_at,
             'is_pro': profile.is_pro,
         }, status=status.HTTP_200_OK)
+
+
+class SubscriptionCheckoutAPIView(APIView):
+    """
+    Cria uma sessão de pagamento (Pix Copia e Cola BR Code ou Cartão de Crédito)
+    para assinatura do InWallet PRO.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from .payment_service import PaymentGatewayService
+        from .models import UserProfile
+
+        period = request.data.get('period', 'yearly')
+        payment_method = request.data.get('payment_method', 'pix')
+        card_data = request.data.get('card')
+
+        if payment_method == 'credit_card':
+            if not isinstance(card_data, dict):
+                return Response(
+                    {'detail': 'Informe os dados do cartão de crédito para prosseguir.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            number = ''.join(ch for ch in str(card_data.get('number', '')) if ch.isdigit())
+            holder = str(card_data.get('holder_name', '')).strip()
+            expiry = str(card_data.get('expiry', '')).strip()
+            cvv = ''.join(ch for ch in str(card_data.get('cvv', '')) if ch.isdigit())
+            if len(number) < 13 or not holder or len(expiry) < 4 or len(cvv) < 3:
+                return Response(
+                    {'detail': 'Dados do cartão incompletos ou inválidos.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        payment = PaymentGatewayService.create_checkout(
+            user=request.user,
+            period=period,
+            payment_method=payment_method,
+            card_data=card_data if payment_method == 'credit_card' else None,
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+        return Response({
+            'transaction_id': payment.id,
+            'external_id': payment.external_id,
+            'payment_method': payment.payment_method,
+            'period': payment.period,
+            'amount': str(payment.amount),
+            'status': payment.status,
+            'pix_payload': payment.pix_payload,
+            'checkout_url': payment.checkout_url,
+            'is_pro': profile.is_pro,
+            'plan_expires_at': profile.plan_expires_at,
+        }, status=status.HTTP_201_CREATED)
+
+
+class SubscriptionConfirmAPIView(APIView):
+    """
+    Verifica e confirma a liquidação de uma cobrança Pix/Checkout pelo external_id.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, external_id, *args, **kwargs):
+        from .models import PaymentTransaction, UserProfile
+        from .payment_service import PaymentGatewayService
+
+        payment = PaymentTransaction.objects.filter(
+            user=request.user,
+            external_id=external_id,
+        ).first()
+
+        if not payment:
+            return Response(
+                {'detail': 'Transação de pagamento não encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        payment = PaymentGatewayService.confirm_payment(payment)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+        return Response({
+            'status': payment.status,
+            'external_id': payment.external_id,
+            'plan': profile.plan,
+            'plan_expires_at': profile.plan_expires_at,
+            'is_pro': profile.is_pro,
+        }, status=status.HTTP_200_OK)
+
+
+class PaymentWebhookAPIView(APIView):
+    """
+    Webhook receptor de notificações assíncronas do Gateway (Asaas / Stripe / Pix BACEN).
+    Valida token de segurança (PAYMENT_WEBHOOK_SECRET) e ativa o plano PRO de forma idempotente.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        from .models import PaymentTransaction
+        from .payment_service import PaymentGatewayService
+
+        expected_secret = getattr(settings, 'PAYMENT_WEBHOOK_SECRET', '')
+        if expected_secret:
+            received_secret = (
+                request.headers.get('X-Webhook-Token')
+                or request.headers.get('asaas-access-token')
+                or request.data.get('webhook_secret')
+                or ''
+            )
+            if received_secret != expected_secret:
+                return Response(
+                    {'detail': 'Assinatura de webhook inválida.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        event = request.data.get('event', 'PAYMENT_CONFIRMED')
+        external_id = (
+            request.data.get('external_id')
+            or (request.data.get('payment') or {}).get('externalReference')
+            or (request.data.get('payment') or {}).get('id')
+        )
+
+        if not external_id:
+            return Response(
+                {'detail': 'external_id ausente no payload do webhook.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        payment = PaymentTransaction.objects.filter(external_id=external_id).first()
+        if not payment:
+            return Response(
+                {'detail': 'Pagamento não localizado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if event in ('PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'checkout.session.completed'):
+            PaymentGatewayService.confirm_payment(payment)
+
+        return Response({'status': 'processed', 'payment_status': payment.status}, status=status.HTTP_200_OK)
+
 
 
 class PasswordResetRequestAPIView(APIView):

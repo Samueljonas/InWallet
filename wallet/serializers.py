@@ -19,16 +19,14 @@ class AccountSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get('request')
         if request and request.user.is_authenticated and not self.instance:
-            installments = attrs.get('installments', 1)
-            installment_mode = attrs.get('installment_mode', 'single')
-            if installments > 1 or installment_mode != 'single':
+            if Account.objects.filter(user=request.user).count() >= 2:
                 profile = getattr(request.user, 'profile', None)
                 if not profile:
                     from users.models import UserProfile
                     profile, _ = UserProfile.objects.get_or_create(user=request.user)
                 if not profile.is_pro:
                     raise serializers.ValidationError({
-                        "installments": "Lançamentos parcelados e recorrentes são exclusivos do plano Pro. Faça upgrade para desbloquear."
+                        "detail": "O plano Gratuito permite até 2 contas bancárias. Faça upgrade para o InWallet Pro para cadastrar contas ilimitadas."
                     })
         return attrs
 
