@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { api, fetchAll } from "../api/client";
+import { useAuth } from "../contexts/AuthContext";
+import { UpgradeModal } from "../components/UpgradeModal";
 import { Account, Transaction } from "../types";
 import { Chip, EmptyState, Header, Screen } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
@@ -43,6 +45,8 @@ export const TransactionsScreen: React.FC<Props> = ({
   onEditTransaction,
   onChanged,
 }) => {
+  const { user } = useAuth();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -125,6 +129,10 @@ export const TransactionsScreen: React.FC<Props> = ({
   }
 
   async function handleExportCsv() {
+    if (!user?.is_pro) {
+      setShowUpgradeModal(true);
+      return;
+    }
     if (items.length === 0) {
       notify("Sem dados", "Não há transações no filtro atual para exportar.");
       return;
@@ -154,8 +162,12 @@ export const TransactionsScreen: React.FC<Props> = ({
               style={styles.exportBtn}
               onPress={handleExportCsv}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Exportar extrato em CSV"
             >
-              <Text style={styles.exportBtnText}>📥 Exportar CSV</Text>
+              <Text style={styles.exportBtnText}>
+                {user?.is_pro ? "📥 Exportar CSV" : "📥 Exportar CSV (PRO)"}
+              </Text>
             </TouchableOpacity>
           ) : undefined
         }
@@ -179,6 +191,7 @@ export const TransactionsScreen: React.FC<Props> = ({
             onChangeText={setSearchQuery}
             placeholder="Buscar por descrição, categoria ou conta..."
             placeholderTextColor={colors.textFaint}
+            accessibilityLabel="Buscar por descrição, categoria ou conta"
             style={styles.searchInput}
             returnKeyType="search"
           />
@@ -187,6 +200,8 @@ export const TransactionsScreen: React.FC<Props> = ({
               onPress={() => setSearchQuery("")}
               hitSlop={8}
               style={styles.clearSearchBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Limpar busca"
             >
               <Text style={styles.clearSearchText}>✕</Text>
             </TouchableOpacity>
@@ -329,6 +344,10 @@ export const TransactionsScreen: React.FC<Props> = ({
           }
         />
       )}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </Screen>
   );
 };

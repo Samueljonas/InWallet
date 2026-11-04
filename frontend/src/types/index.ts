@@ -4,6 +4,9 @@ export interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  is_pro?: boolean;
+  plan?: "free" | "pro";
+  plan_expires_at?: string | null;
 }
 
 export interface Account {

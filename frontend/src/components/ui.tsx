@@ -73,6 +73,9 @@ export const Button: React.FC<{
       activeOpacity={0.8}
       onPress={onPress}
       disabled={inactive}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       style={[
         styles.button,
         small && styles.buttonSmall,
@@ -127,6 +130,7 @@ export const Field: React.FC<
       >
         <TextInput
           placeholderTextColor={colors.textFaint}
+          accessibilityLabel={label || rest.placeholder}
           style={[styles.input, style]}
           secureTextEntry={secure && hidden}
           onFocus={() => setFocused(true)}
@@ -136,7 +140,12 @@ export const Field: React.FC<
           {...rest}
         />
         {secure && (
-          <TouchableOpacity onPress={() => setHidden((h) => !h)} hitSlop={8}>
+          <TouchableOpacity
+            onPress={() => setHidden((h) => !h)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? "Mostrar senha" : "Ocultar senha"}
+          >
             <Text style={styles.eye}>{hidden ? "Mostrar" : "Ocultar"}</Text>
           </TouchableOpacity>
         )}
@@ -207,6 +216,9 @@ export const Chip: React.FC<{
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.8}
+    accessibilityRole="button"
+    accessibilityLabel={count !== undefined ? `${label}, ${count}` : label}
+    accessibilityState={{ selected: !!active }}
     style={[styles.chip, active && styles.chipActive]}
   >
     <Text style={[styles.chipText, active && styles.chipTextActive]}>

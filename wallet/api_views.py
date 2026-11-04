@@ -6,6 +6,7 @@ from django.db.models import ProtectedError, Q
 from django.utils import timezone
 
 from .models import Transaction, Account, Category, Budget
+from .permissions import IsProUser
 from .serializers import (
     TransactionSerializer,
     AccountSerializer,
@@ -115,7 +116,10 @@ class CategoryDetailAPIView(BaseUserFilteredDetailAPIView):
     serializer_class = CategorySerializer
 
     def perform_destroy(self, instance):
-        # Transaction.category usa on_delete=PROTECT: sem isso viraria erro 500.
+        if Transaction.objects.filter(category=instance).exists():
+            raise ValidationError(
+                {'detail': 'Esta categoria possui transações e não pode ser excluída.'}
+            )
         try:
             instance.delete()
         except ProtectedError:
@@ -129,6 +133,7 @@ class CategoryDetailAPIView(BaseUserFilteredDetailAPIView):
 class BudgetListCreateAPIView(BaseUserFilteredListCreateAPIView):
     model = Budget
     serializer_class = BudgetSerializer
+    permission_classes = [permissions.IsAuthenticated, IsProUser]
 
     def get_queryset(self):
         return Budget.objects.filter(user=self.request.user).select_related('category')
@@ -137,6 +142,7 @@ class BudgetListCreateAPIView(BaseUserFilteredListCreateAPIView):
 class BudgetDetailAPIView(BaseUserFilteredDetailAPIView):
     model = Budget
     serializer_class = BudgetSerializer
+    permission_classes = [permissions.IsAuthenticated, IsProUser]
 
 
 

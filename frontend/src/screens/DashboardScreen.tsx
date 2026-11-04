@@ -20,6 +20,7 @@ import {
 } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
+import { UpgradeModal } from "../components/UpgradeModal";
 import {
   CategoryDistributionChart,
   MonthlyEvolutionChart,
@@ -55,6 +56,7 @@ export const DashboardScreen: React.FC<Props> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -108,18 +110,43 @@ export const DashboardScreen: React.FC<Props> = ({
             <Text style={styles.avatarText}>{userInitials}</Text>
           </View>
           <View>
-            <Text style={styles.greeting}>Olá, {user?.first_name || user?.username || "você"} 👋</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.greeting}>
+                Olá, {user?.first_name || user?.username || "você"} 👋
+              </Text>
+              {user?.is_pro && (
+                <View style={styles.proHeaderBadge}>
+                  <Text style={styles.proHeaderBadgeText}>PRO</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.statusSubtitle}>Gestão financeira inteligente</Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.quickAddBtn}
-          onPress={onAdd}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.quickAddText}>+ Novo</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          {!user?.is_pro && (
+            <TouchableOpacity
+              style={styles.proBtn}
+              onPress={() => setShowUpgradeModal(true)}
+              activeOpacity={0.85}
+              accessibilityLabel="Assinar plano Pro"
+              accessibilityRole="button"
+            >
+              <Text style={styles.proBtnText}>⭐ Seja PRO</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.quickAddBtn}
+            onPress={onAdd}
+            activeOpacity={0.8}
+            accessibilityLabel="Adicionar nova transação"
+            accessibilityRole="button"
+          >
+            <Text style={styles.quickAddText}>+ Novo</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -186,7 +213,7 @@ export const DashboardScreen: React.FC<Props> = ({
               <View style={styles.heroStatsRow}>
                 <View style={styles.heroStatItem}>
                   <Text style={styles.heroStatLabel}>Receitas do Mês</Text>
-                  <Text style={[styles.heroStatValue, { color: "#34D399" }]}>
+                  <Text style={[styles.heroStatValue, { color: "#A7F3D0" }]}>
                     + {formatCurrency(metrics?.monthly_income)}
                   </Text>
                 </View>
@@ -195,7 +222,7 @@ export const DashboardScreen: React.FC<Props> = ({
 
                 <View style={styles.heroStatItem}>
                   <Text style={styles.heroStatLabel}>Despesas do Mês</Text>
-                  <Text style={[styles.heroStatValue, { color: "#F87171" }]}>
+                  <Text style={[styles.heroStatValue, { color: "#FEE2E2" }]}>
                     - {formatCurrency(metrics?.monthly_expense)}
                   </Text>
                 </View>
@@ -207,7 +234,7 @@ export const DashboardScreen: React.FC<Props> = ({
                   <Text
                     style={[
                       styles.heroStatValue,
-                      { color: net >= 0 ? "#6EE7B7" : "#FCA5A5" },
+                      { color: net >= 0 ? "#A7F3D0" : "#FEE2E2" },
                     ]}
                   >
                     {net >= 0 ? "+" : ""}
@@ -265,7 +292,7 @@ export const DashboardScreen: React.FC<Props> = ({
                         pct >= 100
                           ? colors.expense
                           : pct >= 75
-                          ? "#D97706"
+                          ? "#B45309"
                           : colors.income;
                       const clampedWidth = Math.min(100, Math.max(4, pct));
                       return (
@@ -349,6 +376,8 @@ export const DashboardScreen: React.FC<Props> = ({
                     <TouchableOpacity
                       onPress={onSeeAllTransactions}
                       style={styles.seeAllBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel="Ver todas as transações"
                     >
                       <Text style={styles.seeAllText}>Ver todas →</Text>
                     </TouchableOpacity>
@@ -365,6 +394,8 @@ export const DashboardScreen: React.FC<Props> = ({
                   <TouchableOpacity
                     style={styles.emptyAddBtn}
                     onPress={onAdd}
+                    accessibilityLabel="Adicionar nova transação"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.emptyAddBtnText}>+ Adicionar Transação</Text>
                   </TouchableOpacity>
@@ -383,6 +414,10 @@ export const DashboardScreen: React.FC<Props> = ({
           </>
         )}
       </ScrollView>
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </Screen>
   );
 };
@@ -442,9 +477,33 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryBorder,
   },
   quickAddText: {
-    color: colors.primary,
+    color: colors.primaryDark,
     fontSize: 13,
     fontWeight: "700",
+  },
+  proHeaderBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  proHeaderBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  proBtn: {
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#FCD34D",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+  },
+  proBtnText: {
+    color: "#B45309",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   content: {
@@ -463,14 +522,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 
-  // Hero Card
+  // Hero Card (Alto contraste WCAG AA >= 4.5:1 sobre azul profundo)
   heroCard: {
     marginTop: spacing.md,
-    backgroundColor: "#1D4ED8", // Azul Real Profundo Fintech
+    backgroundColor: "#1E3A8A", // Blue 900 - Contraste > 8.5:1 para textos claros e indicadores
     borderRadius: radius.xl,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: "#3B82F6",
+    borderColor: "#2563EB",
   },
   heroTopRow: {
     flexDirection: "row",
@@ -478,7 +537,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   heroLabel: {
-    color: "#BFDBFE",
+    color: "#DBEAFE", // Blue 100 - Contraste 9.0:1 sobre #1E3A8A
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",

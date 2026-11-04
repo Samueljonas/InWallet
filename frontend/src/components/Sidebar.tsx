@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Tab } from "./TabBar";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import { useAuth } from "../contexts/AuthContext";
+import { UpgradeModal } from "./UpgradeModal";
 
 const NAV_ITEMS: { key: Tab; icon: string; label: string }[] = [
   { key: "home", icon: "🏠", label: "Dashboard" },
@@ -16,8 +17,13 @@ interface SidebarProps {
   onAdd: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  current,
+  onChange,
+  onAdd,
+}) => {
   const { user, logout } = useAuth();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   return (
     <View style={styles.sidebar}>
@@ -37,6 +43,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) =>
         style={[styles.addButton, shadowCard]}
         onPress={onAdd}
         activeOpacity={0.85}
+        accessibilityLabel="Adicionar nova transação"
+        accessibilityRole="button"
       >
         <Text style={styles.addIcon}>+</Text>
         <Text style={styles.addText}>Nova Transação</Text>
@@ -52,6 +60,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) =>
               style={[styles.navItem, active && styles.navItemActive]}
               onPress={() => onChange(item.key)}
               activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityLabel={item.label}
+              accessibilityState={{ selected: active }}
             >
               <Text style={styles.navIcon}>{item.icon}</Text>
               <Text style={[styles.navLabel, active && styles.navLabelActive]}>
@@ -65,6 +76,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) =>
 
       <View style={{ flex: 1 }} />
 
+      {/* Card de Upgrade para Usuários Free */}
+      {!user?.is_pro && (
+        <TouchableOpacity
+          style={styles.proPromoCard}
+          onPress={() => setShowUpgradeModal(true)}
+          activeOpacity={0.88}
+        >
+          <View style={styles.proPromoHeader}>
+            <Text style={styles.proPromoBadge}>PRO</Text>
+            <Text style={styles.proPromoTitle}>Passe para o PRO</Text>
+          </View>
+          <Text style={styles.proPromoDesc}>
+            Contas ilimitadas, metas e exportação em CSV sem restrições.
+          </Text>
+          <Text style={styles.proPromoLink}>Conhecer planos →</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Perfil & Logout no Rodapé da Sidebar */}
       {user && (
         <View style={styles.userFooter}>
@@ -74,9 +103,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) =>
             </Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {user.first_name || user.username}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {user.first_name || user.username}
+              </Text>
+              {user.is_pro && (
+                <View style={styles.userProBadge}>
+                  <Text style={styles.userProBadgeText}>PRO</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.userEmail} numberOfLines={1}>
               {user.email || `@${user.username}`}
             </Text>
@@ -84,12 +120,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ current, onChange, onAdd }) =>
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={logout}
-            accessibilityLabel="Sair"
+            accessibilityLabel="Sair da conta"
+            accessibilityRole="button"
           >
             <Text style={styles.logoutIcon}>🚪</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </View>
   );
 };
@@ -235,5 +277,54 @@ const styles = StyleSheet.create({
   logoutIcon: {
     fontSize: 16,
   },
+  proPromoCard: {
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  proPromoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  proPromoBadge: {
+    backgroundColor: colors.primary,
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "900",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  proPromoTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  proPromoDesc: {
+    fontSize: 11.5,
+    color: colors.textMuted,
+    lineHeight: 16,
+    marginBottom: 6,
+  },
+  proPromoLink: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  userProBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  userProBadgeText: {
+    color: colors.white,
+    fontSize: 9,
+    fontWeight: "900",
+  },
 });
-

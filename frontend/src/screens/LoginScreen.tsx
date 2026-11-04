@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
+import { ForgotPasswordModal } from "../components/ForgotPasswordModal";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import { extractErrorMessage } from "../utils/format";
 
@@ -21,6 +22,7 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   async function handleLogin() {
     if (!username.trim() || !password) {
@@ -92,11 +94,21 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
               onSubmitEditing={handleLogin}
             />
 
+            <TouchableOpacity
+              style={styles.forgotBtn}
+              onPress={() => setShowForgotPassword(true)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Esqueceu sua senha? Recuperar acesso"
+            >
+              <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
+            </TouchableOpacity>
+
             <Button
               title="Entrar no InWallet"
               onPress={handleLogin}
               loading={loading}
-              style={{ marginTop: spacing.xl }}
+              style={{ marginTop: spacing.md }}
             />
           </Card>
 
@@ -104,6 +116,8 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
             style={styles.switchBtn}
             onPress={onNavigateToRegister}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Ainda não tem conta? Cadastre-se gratuitamente"
           >
             <Text style={styles.switchText}>
               Ainda não tem conta?{" "}
@@ -112,6 +126,11 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ForgotPasswordModal
+        visible={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </Screen>
   );
 };
@@ -190,6 +209,16 @@ const styles = StyleSheet.create({
   },
   switchBold: {
     color: colors.primary,
+    fontWeight: "700",
+  },
+  forgotBtn: {
+    alignSelf: "flex-end",
+    marginTop: spacing.xs,
+    paddingVertical: 4,
+  },
+  forgotText: {
+    color: colors.primary,
+    fontSize: 13,
     fontWeight: "700",
   },
 });
