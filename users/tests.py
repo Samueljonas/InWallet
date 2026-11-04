@@ -185,5 +185,39 @@ class UserAPITests(APITestCase):
         user.refresh_from_db()
         self.assertTrue(user.check_password('UpdatedPassword789!'))
 
+    def test_subscription_pix_checkout_and_webhook_confirmation(self):
+        user = User.objects.create_user(
+            username='pix_user',
+            email='pix@example.com',
+            password='MyPassword123!'
+        )
+        self.client.force_authenticate(user=user)
+
+        # 1. Cria checkout Pix Anual
+        checkout_res = self.client.post(
+            '/accounts/api/v1/auth/subscription/checkout/',
+            {'period': 'yearly', 'payment_method': 'pix'},
+            format='json'
+        )
+        self.assertEqual(checkout_res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(checkout_res.data['status'], 'pending')
+        self.assertIn('000201', checkout_res.data['pix_payload'])
+        external_id = checkout_res.data['external_id']
+
+        # 2. Webhook confirma o pagamento de forma assíncrona
+        self.client.force_authenticate(user=None)
+        webhook_res = self.client.post(
+            '/accounts/api/v1/auth/subscription/webhook/',
+            {'event': 'PAYMENT_CONFIRMED', 'external_id': external_id},
+            format='json'
+        )
+        self.assertEqual(webhook_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(webhook_res.data['payment_status'], 'paid')
+
+        user.profile.refresh_from_db()
+        self.assertTrue(user.profile.is_pro)
+        self.assertEqual(user.profile.plan, 'pro')
+
+
 
 
