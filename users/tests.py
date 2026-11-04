@@ -105,4 +105,85 @@ class UserAPITests(APITestCase):
         self.assertEqual(user.profile.plan, 'pro')
         self.assertIsNotNone(user.profile.plan_expires_at)
 
+    def test_password_reset_flow_and_invalid_token(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        user = User.objects.create_user(
+            username='reset_user',
+            email='reset@example.com',
+            password='OldPassword123!'
+        )
+
+        # 1. Solicita recuperação por e-mail
+        req_res = self.client.post(
+            '/accounts/api/v1/auth/password-reset/',
+            {'email': 'reset@example.com'},
+            format='json'
+        )
+        self.assertEqual(req_res.status_code, status.HTTP_200_OK)
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        # 2. Tenta confirmar com token inválido
+        bad_res = self.client.post(
+            '/accounts/api/v1/auth/password-reset/confirm/',
+            {
+                'uid': uid,
+                'token': 'invalid-token-123',
+                'new_password': 'NewStrongPassword456!'
+            },
+            format='json'
+        )
+        self.assertEqual(bad_res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 3. Confirma com UID e Token válidos
+        ok_res = self.client.post(
+            '/accounts/api/v1/auth/password-reset/confirm/',
+            {
+                'uid': uid,
+                'token': token,
+                'new_password': 'NewStrongPassword456!'
+            },
+            format='json'
+        )
+        self.assertEqual(ok_res.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('NewStrongPassword456!'))
+
+    def test_password_change_authenticated(self):
+        user = User.objects.create_user(
+            username='change_pwd_user',
+            email='changepwd@example.com',
+            password='CurrentPassword123!'
+        )
+        self.client.force_authenticate(user=user)
+
+        # Senha atual incorreta deve falhar com 400
+        wrong_res = self.client.post(
+            '/accounts/api/v1/auth/password-change/',
+            {
+                'old_password': 'WrongPassword000!',
+                'new_password': 'UpdatedPassword789!'
+            },
+            format='json'
+        )
+        self.assertEqual(wrong_res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Senha atual correta deve atualizar a senha com 200
+        ok_res = self.client.post(
+            '/accounts/api/v1/auth/password-change/',
+            {
+                'old_password': 'CurrentPassword123!',
+                'new_password': 'UpdatedPassword789!'
+            },
+            format='json'
+        )
+        self.assertEqual(ok_res.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('UpdatedPassword789!'))
+
+
 

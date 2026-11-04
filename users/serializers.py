@@ -57,3 +57,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_plan_expires_at(self, obj):
         return self.get_profile(obj).plan_expires_at
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """
+    Serializer para solicitação de recuperação de senha via e-mail.
+    """
+    email = serializers.EmailField(required=True)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Serializer para confirmação de redefinição de senha via token/UID.
+    """
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """
+    Serializer para alteração de senha de usuário autenticado.
+    """
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
