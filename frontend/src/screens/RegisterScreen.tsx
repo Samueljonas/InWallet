@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
 import { LegalDocType, LegalModal } from "../components/LegalModal";
+import { Icon } from "../components/Icon";
 import { colors, radius, spacing } from "../theme";
 import { extractErrorMessage, extractFieldErrors } from "../utils/format";
 
@@ -163,7 +164,9 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
                     !!errors.terms && styles.checkboxError,
                   ]}
                 >
-                  {acceptedTerms && <Text style={styles.checkmark}>✓</Text>}
+                  {acceptedTerms && (
+                    <Icon name="check" size={13} color={colors.white} />
+                  )}
                 </TouchableOpacity>
 
                 <Text style={styles.consentText}>
@@ -246,9 +249,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 26,
-    fontWeight: "900",
-    letterSpacing: -0.5,
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -0.4,
   },
   subtitle: {
     color: colors.textMuted,
@@ -286,27 +289,27 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: 6,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.borderStrong,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
   },
   checkboxChecked: {
     backgroundColor: colors.primary,
-    borderColor: colors.primaryDark,
+    borderColor: colors.primary,
   },
   checkboxError: {
     borderColor: colors.expense,
   },
   checkmark: {
     color: colors.white,
-    fontSize: 14,
-    fontWeight: "900",
+    fontSize: 13,
+    fontWeight: "700",
   },
   consentText: {
     flex: 1,
@@ -315,8 +318,8 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   consentLink: {
-    color: colors.primaryDark,
-    fontWeight: "700",
+    color: colors.primaryLight,
+    fontWeight: "600",
     textDecorationLine: "underline",
   },
   termsError: {

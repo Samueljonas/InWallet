@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import { Transaction } from "../types";
 import { formatCurrency, formatDate } from "../utils/format";
+import { Icon } from "./Icon";
 
 export const TransactionRow: React.FC<{
   tx: Transaction;
@@ -14,7 +15,7 @@ export const TransactionRow: React.FC<{
   return (
     <TouchableOpacity
       style={[styles.row, shadowCard]}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${isExpense ? "Despesa" : "Receita"}: ${txTitle}, ${formatCurrency(tx.amount)} em ${formatDate(tx.date)}`}
@@ -28,14 +29,11 @@ export const TransactionRow: React.FC<{
           },
         ]}
       >
-        <Text
-          style={[
-            styles.iconText,
-            { color: isExpense ? colors.expense : colors.income },
-          ]}
-        >
-          {isExpense ? "↓" : "↑"}
-        </Text>
+        <Icon
+          name={isExpense ? "arrow-down" : "arrow-up"}
+          size={15}
+          color={isExpense ? colors.expense : colors.income}
+        />
       </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
@@ -70,7 +68,7 @@ export const TransactionRow: React.FC<{
           accessibilityLabel="Editar lançamento"
           accessibilityRole="button"
         >
-          <Text style={styles.actionIcon}>✏️</Text>
+          <Icon name="edit" size={14} color={colors.textMuted} />
         </TouchableOpacity>
       )}
       {onDelete && (
@@ -81,7 +79,7 @@ export const TransactionRow: React.FC<{
           accessibilityLabel="Excluir lançamento"
           accessibilityRole="button"
         >
-          <Text style={styles.deleteText}>🗑</Text>
+          <Icon name="trash" size={14} color={colors.expense} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -92,7 +90,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -100,28 +98,34 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   icon: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     marginRight: spacing.md,
   },
-  iconText: { fontSize: 18, fontWeight: "900" },
   info: { flex: 1, marginRight: spacing.sm },
-  title: { color: colors.text, fontSize: 15, fontWeight: "700", letterSpacing: -0.2 },
+  title: {
+    color: colors.text,
+    fontSize: 14.5,
+    fontWeight: "600",
+    letterSpacing: -0.1,
+  },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   pill: {
     backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  pillText: { color: colors.textMuted, fontSize: 11, fontWeight: "600" },
+  pillText: { color: colors.textMuted, fontSize: 11, fontWeight: "500" },
   sub: { color: colors.textFaint, fontSize: 12, fontWeight: "500" },
   rightSide: { alignItems: "flex-end", marginRight: 4 },
-  amount: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
+  amount: { fontSize: 14.5, fontWeight: "700", letterSpacing: -0.2 },
   actionBtn: {
     width: 30,
     height: 30,
@@ -130,8 +134,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  actionIcon: { fontSize: 13 },
   deleteBtn: {
     width: 30,
     height: 30,
@@ -140,7 +145,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.expenseBorder,
   },
-  deleteText: { color: colors.expense, fontSize: 13, fontWeight: "700" },
 });
-

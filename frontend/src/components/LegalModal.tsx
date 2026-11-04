@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { colors, radius, shadowCard, spacing, topInset } from "../theme";
 import { Button } from "./ui";
+import { Icon } from "./Icon";
 
 export type LegalDocType = "terms" | "privacy" | null;
 
@@ -116,7 +117,7 @@ export const LegalModal: React.FC<{
               accessibilityRole="button"
               accessibilityLabel="Fechar documento legal"
             >
-              <Text style={styles.closeText}>✕</Text>
+              <Icon name="close" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -175,10 +176,10 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 640,
     maxHeight: "90%",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     overflow: "hidden",
   },
   header: {

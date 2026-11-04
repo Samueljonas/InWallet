@@ -7,13 +7,14 @@ import {
   View,
 } from "react-native";
 import { colors, radius, spacing } from "../theme";
+import { Icon, IconName } from "./Icon";
 
 export type Tab = "home" | "transactions" | "manage";
 
-const ITEMS: { key: Tab; icon: string; label: string }[] = [
-  { key: "home", icon: "🏠", label: "Início" },
-  { key: "transactions", icon: "🧾", label: "Extrato" },
-  { key: "manage", icon: "⚙️", label: "Ajustes" },
+const ITEMS: { key: Tab; icon: IconName; label: string }[] = [
+  { key: "home", icon: "home", label: "Início" },
+  { key: "transactions", icon: "transactions", label: "Extrato" },
+  { key: "manage", icon: "settings", label: "Ajustes" },
 ];
 
 export const TabBar: React.FC<{
@@ -34,9 +35,11 @@ export const TabBar: React.FC<{
         accessibilityState={{ selected: active }}
       >
         <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
-          <Text style={[styles.icon, !active && styles.iconInactive]}>
-            {item.icon}
-          </Text>
+          <Icon
+            name={item.icon}
+            size={17}
+            color={active ? colors.white : colors.textMuted}
+          />
         </View>
         <Text style={[styles.label, active && styles.labelActive]}>
           {item.label}
@@ -52,15 +55,15 @@ export const TabBar: React.FC<{
         <TouchableOpacity
           style={styles.fab}
           onPress={onAdd}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
           accessibilityLabel="Adicionar nova transação"
           accessibilityRole="button"
         >
-          <Text style={styles.fabText}>+</Text>
+          <Icon name="plus" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
 
-      {/* Pílula Principal da Navbar com 3 Abas Simétricas e Alto Destaque */}
+      {/* Pílula Principal da Navbar com 3 Abas Simétricas */}
       <View style={styles.pillBar}>
         {renderItem(ITEMS[0])}
         {renderItem(ITEMS[1])}
@@ -90,7 +93,7 @@ const styles = StyleSheet.create({
   floatingFabRow: {
     width: "100%",
     maxWidth: 460,
-    alignItems: "flex-end", // Canto inferior direito acima da navbar
+    alignItems: "flex-end",
     justifyContent: "center",
     marginBottom: 12,
     paddingRight: 4,
@@ -102,23 +105,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     width: "100%",
     maxWidth: 460,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 999,
     paddingVertical: 10,
     paddingHorizontal: spacing.md,
-    borderWidth: 2,
-    borderColor: "#CBD5E1", // Slate 300 - borda mais forte e destacada
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     ...Platform.select({
       web: {
-        boxShadow:
-          "0 14px 32px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08)",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.45)",
       } as any,
       default: {
-        shadowColor: "#0F172A",
+        shadowColor: "#000000",
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.18,
+        shadowOpacity: 0.4,
         shadowRadius: 16,
-        elevation: 18,
+        elevation: 14,
       },
     }),
   },
@@ -131,60 +133,42 @@ const styles = StyleSheet.create({
   },
   itemActive: {},
   iconWrap: {
-    paddingHorizontal: 18,
-    paddingVertical: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     marginBottom: 4,
-    backgroundColor: "#F1F5F9", // Fundo sutil mesmo nos inativos para dar destaque
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "transparent",
   },
   iconWrapActive: {
-    backgroundColor: colors.primary, // Azul forte na aba ativa
-    borderColor: colors.primaryDark,
-  },
-  icon: {
-    fontSize: 20,
-  },
-  iconInactive: {
-    opacity: 0.9,
+    backgroundColor: colors.primary,
   },
   label: {
-    color: "#1E293B", // Slate 800 - alto contraste para fácil leitura
-    fontSize: 12.5,
-    fontWeight: "700",
-    letterSpacing: -0.2,
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "500",
   },
   labelActive: {
-    color: colors.primaryDark,
-    fontWeight: "900",
-    fontSize: 13,
+    color: colors.text,
+    fontWeight: "600",
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary, // Preenchido de azul
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
       web: {
-        boxShadow: "0 8px 20px rgba(37, 99, 235, 0.45)",
+        boxShadow: "0 8px 24px rgba(59, 130, 246, 0.42)",
       } as any,
       default: {
-        shadowColor: "#1D4ED8",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.38,
         shadowRadius: 10,
-        elevation: 12,
+        elevation: 10,
       },
     }),
-  },
-  fabText: {
-    color: colors.white, // "+" em branco
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 32,
-    marginTop: -2,
   },
 });

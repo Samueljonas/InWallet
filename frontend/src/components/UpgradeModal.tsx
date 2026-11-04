@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import { Button } from "./ui";
 import { api } from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
 import { extractErrorMessage, notify } from "../utils/format";
+import { Icon, IconName } from "./Icon";
 
 interface UpgradeModalProps {
   visible: boolean;
@@ -22,29 +22,29 @@ interface UpgradeModalProps {
   onSubscribe?: (planType: "monthly" | "yearly") => void;
 }
 
-const PRO_BENEFITS = [
+const PRO_BENEFITS: { icon: IconName; title: string; desc: string }[] = [
   {
-    icon: "🏦",
+    icon: "wallet",
     title: "Contas Bancárias Ilimitadas",
     desc: "Cadastre quantas contas, carteiras e cartões precisar (Free: máx. 2).",
   },
   {
-    icon: "🎯",
+    icon: "target",
     title: "Metas de Gastos por Categoria",
     desc: "Defina tetos mensais com alertas visuais no Dashboard para não estourar o orçamento.",
   },
   {
-    icon: "💳",
+    icon: "repeat",
     title: "Parcelamento e Despesas Recorrentes",
     desc: "Lance compras parceladas em até 48x ou repita custos fixos todo mês automaticamente.",
   },
   {
-    icon: "📥",
+    icon: "download",
     title: "Exportação Completa em Planilha (CSV)",
     desc: "Exporte relatórios financeiros com 1 clique para Excel, Google Sheets ou contador.",
   },
   {
-    icon: "⚡",
+    icon: "spark",
     title: "Suporte Prioritário & Novidades Antecipadas",
     desc: "Acesso em primeira mão a integrações de Open Finance e novos recursos.",
   },
@@ -73,8 +73,8 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
       });
       await refreshUser();
       notify(
-        "Parabéns! 🎉",
-        "Sua conta agora é InWallet PRO com todos os recursos desbloqueados!"
+        "Assinatura ativa",
+        "Sua conta agora é InWallet PRO com todos os recursos desbloqueados."
       );
       onSuccess?.();
       onClose();
@@ -102,15 +102,27 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             <View style={styles.badgePro}>
               <Text style={styles.badgeProText}>INWALLET PRO</Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={12} style={styles.closeBtn}>
-              <Text style={styles.closeText}>✕</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={12}
+              style={styles.closeBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar"
+            >
+              <Icon name="close" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-            <Text style={styles.title}>Desbloqueie o poder total das suas finanças</Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scroll}
+          >
+            <Text style={styles.title}>
+              Desbloqueie o potencial completo das suas finanças
+            </Text>
             <Text style={styles.subtitle}>
-              Tenha controle absoluto com orçamentos por categoria, contas ilimitadas e relatórios avançados.
+              Tenha controle absoluto com orçamentos por categoria, contas
+              ilimitadas e relatórios avançados.
             </Text>
 
             {/* Lista de Benefícios */}
@@ -118,7 +130,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
               {PRO_BENEFITS.map((item, idx) => (
                 <View key={idx} style={styles.benefitItem}>
                   <View style={styles.benefitIconWrap}>
-                    <Text style={styles.benefitIcon}>{item.icon}</Text>
+                    <Icon name={item.icon} size={16} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.benefitTitle}>{item.title}</Text>
@@ -141,7 +153,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                 activeOpacity={0.85}
               >
                 <View style={styles.discountTag}>
-                  <Text style={styles.discountTagText}>33% OFF - MAIS VANTAJOSO</Text>
+                  <Text style={styles.discountTagText}>
+                    33% OFF — MAIS VANTAJOSO
+                  </Text>
                 </View>
                 <View style={styles.planHeader}>
                   <Text style={styles.planName}>Plano Anual</Text>
@@ -149,7 +163,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                     R$ 9,90 <Text style={styles.planPeriod}>/ mês</Text>
                   </Text>
                 </View>
-                <Text style={styles.planBillingNote}>Cobrado anualmente (R$ 119,00/ano)</Text>
+                <Text style={styles.planBillingNote}>
+                  Cobrado anualmente (R$ 119,00/ano)
+                </Text>
               </TouchableOpacity>
 
               {/* Plano Mensal */}
@@ -168,7 +184,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                     R$ 14,90 <Text style={styles.planPeriod}>/ mês</Text>
                   </Text>
                 </View>
-                <Text style={styles.planBillingNote}>Cancele a qualquer momento sem taxas</Text>
+                <Text style={styles.planBillingNote}>
+                  Cancele a qualquer momento sem taxas
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -184,9 +202,12 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
               style={styles.subscribeBtn}
             />
 
-            <Text style={styles.guaranteeText}>
-              🔒 Pagamento seguro • Cancele quando quiser com 1 clique
-            </Text>
+            <View style={styles.guaranteeRow}>
+              <Icon name="lock" size={12} color={colors.textFaint} />
+              <Text style={styles.guaranteeText}>
+                Pagamento seguro • Cancele quando quiser
+              </Text>
+            </View>
           </ScrollView>
         </View>
       </View>
@@ -197,20 +218,22 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    backgroundColor: "rgba(10, 15, 30, 0.78)",
     justifyContent: "flex-end",
     alignItems: "center",
   },
   container: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     width: "100%",
-    maxWidth: 580,
+    maxWidth: 560,
     maxHeight: "92%",
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    paddingBottom: Platform.select({ ios: 34, android: 24, default: 20 }),
+    paddingBottom: Platform.select({ ios: 34, android: 24, default: 24 }),
   },
   header: {
     flexDirection: "row",
@@ -222,47 +245,44 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.pill,
   },
   badgeProText: {
-    color: colors.primary,
+    color: colors.primaryLight,
     fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 0.8,
+    fontWeight: "700",
+    letterSpacing: 0.6,
   },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: radius.pill,
+    borderRadius: 16,
     backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  closeText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    fontWeight: "700",
-  },
   scroll: {
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
   },
   title: {
     fontSize: 22,
-    fontWeight: "900",
+    fontWeight: "700",
     color: colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
     lineHeight: 28,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.textMuted,
     marginTop: 6,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   benefitsList: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     gap: spacing.md,
   },
   benefitItem: {
@@ -274,90 +294,92 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  benefitIcon: {
-    fontSize: 18,
-  },
   benefitTitle: {
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "600",
     color: colors.text,
-    letterSpacing: -0.2,
   },
   benefitDesc: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: colors.textMuted,
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   plansWrap: {
     marginTop: spacing.xl,
     gap: spacing.md,
   },
   planCard: {
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: radius.lg,
-    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
     position: "relative",
   },
   planCardActive: {
     borderColor: colors.primary,
-    backgroundColor: "#F0F7FF",
+    backgroundColor: colors.primarySoft,
   },
   discountTag: {
     position: "absolute",
     top: -10,
-    right: 14,
-    backgroundColor: colors.income,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    right: 16,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: radius.pill,
   },
   discountTagText: {
     color: colors.white,
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
   planHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "baseline",
   },
   planName: {
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "600",
     color: colors.text,
   },
   planPrice: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: colors.primary,
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.primaryLight,
   },
   planPeriod: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "500",
     color: colors.textMuted,
   },
   planBillingNote: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textMuted,
     marginTop: 4,
   },
   subscribeBtn: {
     marginTop: spacing.xl,
-    paddingVertical: 14,
+  },
+  guaranteeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: spacing.md,
   },
   guaranteeText: {
-    textAlign: "center",
+    fontSize: 12,
     color: colors.textFaint,
-    fontSize: 11,
-    marginTop: spacing.md,
     fontWeight: "500",
   },
 });
