@@ -13,6 +13,7 @@ import {
 import { api, fetchAll } from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
 import { UpgradeModal } from "../components/UpgradeModal";
+import { ImportStatementModal } from "../components/ImportStatementModal";
 import { Account, Transaction } from "../types";
 import { Chip, EmptyState, Header, Screen } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
@@ -48,6 +49,7 @@ export const TransactionsScreen: React.FC<Props> = ({
 }) => {
   const { user } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -158,20 +160,32 @@ export const TransactionsScreen: React.FC<Props> = ({
             : `${count} ${count === 1 ? "registro encontrado" : "registros encontrados"}`
         }
         right={
-          items.length > 0 ? (
+          <View style={styles.headerActions}>
             <TouchableOpacity
-              style={styles.exportBtn}
-              onPress={handleExportCsv}
+              style={styles.importBtn}
+              onPress={() => setShowImportModal(true)}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel="Exportar extrato em CSV"
+              accessibilityLabel="Importar extrato OFX ou CSV"
             >
-              <Icon name="download" size={13} color={colors.primaryLight} />
-              <Text style={styles.exportBtnText}>
-                {user?.is_pro ? "Exportar CSV" : "Exportar CSV (PRO)"}
-              </Text>
+              <Icon name="upload" size={13} color={colors.text} />
+              <Text style={styles.importBtnText}>Importar</Text>
             </TouchableOpacity>
-          ) : undefined
+            {items.length > 0 && (
+              <TouchableOpacity
+                style={styles.exportBtn}
+                onPress={handleExportCsv}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Exportar extrato em CSV"
+              >
+                <Icon name="download" size={13} color={colors.primaryLight} />
+                <Text style={styles.exportBtnText}>
+                  {user?.is_pro ? "Exportar" : "CSV (PRO)"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         }
       />
 
@@ -352,12 +366,42 @@ export const TransactionsScreen: React.FC<Props> = ({
         visible={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
+      <ImportStatementModal
+        visible={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        accounts={accounts}
+        onImported={() => {
+          load();
+          onChanged();
+        }}
+      />
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
   filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  importBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+  },
+  importBtnText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   exportBtn: {
     flexDirection: "row",
     alignItems: "center",

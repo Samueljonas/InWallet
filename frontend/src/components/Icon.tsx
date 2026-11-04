@@ -23,7 +23,9 @@ export type IconName =
   | "check"
   | "lock"
   | "file"
-  | "spark";
+  | "spark"
+  | "upload"
+  | "copy";
 
 interface IconProps {
   name: IconName;
@@ -602,6 +604,73 @@ export const Icon: React.FC<IconProps> = ({
               borderColor: color,
               transform: [{ rotate: "45deg" }],
               borderRadius: 1.5,
+            }}
+          />
+        </View>
+      );
+    }
+
+    case "upload": {
+      return (
+        <View style={[styles.wrap, { width: size, height: size }]}>
+          <View
+            style={{
+              width: size * 0.35,
+              height: size * 0.35,
+              borderTopWidth: stroke,
+              borderLeftWidth: stroke,
+              borderColor: color,
+              transform: [{ rotate: "45deg" }],
+              marginBottom: -size * 0.25,
+            }}
+          />
+          <View
+            style={{
+              width: stroke,
+              height: size * 0.55,
+              backgroundColor: color,
+            }}
+          />
+          <View
+            style={{
+              width: size * 0.85,
+              height: stroke,
+              backgroundColor: color,
+              marginTop: 3,
+              borderRadius: 1,
+            }}
+          />
+        </View>
+      );
+    }
+
+    case "copy": {
+      return (
+        <View style={[styles.wrap, { width: size, height: size }]}>
+          <View
+            style={{
+              position: "absolute",
+              top: 1,
+              left: 1,
+              width: size * 0.62,
+              height: size * 0.62,
+              borderWidth: stroke,
+              borderColor: color,
+              borderRadius: 2,
+              opacity: 0.55,
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              bottom: 1,
+              right: 1,
+              width: size * 0.65,
+              height: size * 0.65,
+              borderWidth: stroke,
+              borderColor: color,
+              backgroundColor: colors.surface,
+              borderRadius: 2,
             }}
           />
         </View>

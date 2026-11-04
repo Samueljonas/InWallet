@@ -7,6 +7,7 @@ from .strategies import (
 )
 from .transaction_service import TransactionService
 from .dashboard_service import DashboardService
+from .statement_import_service import StatementImportService
 
 __all__ = [
     'TransactionType',
@@ -16,4 +17,5 @@ __all__ = [
     'TransactionStrategyFactory',
     'TransactionService',
     'DashboardService',
+    'StatementImportService',
 ]

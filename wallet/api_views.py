@@ -14,7 +14,7 @@ from .serializers import (
     BudgetSerializer,
     DashboardMetricsSerializer,
 )
-from .services import TransactionService, DashboardService
+from .services import TransactionService, DashboardService, StatementImportService
 
 
 class BaseUserFilteredListCreateAPIView(generics.ListCreateAPIView):
@@ -170,4 +170,82 @@ class DashboardAPIView(APIView):
         data = DashboardService.get_dashboard_data(request.user, year, month)
         serializer = DashboardMetricsSerializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class StatementImportAPIView(APIView):
+    """
+    Endpoint para importação de extratos bancários nos formatos OFX e CSV.
+    Suporta envio via JSON ({ account, filename, content }) ou Multipart Form ({ account, file }).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        account_id = request.data.get('account')
+        if not account_id:
+            return Response(
+                {'detail': 'Selecione a conta bancária de destino para a importação.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        account = Account.objects.filter(pk=account_id, user=request.user).first()
+        if not account:
+            return Response(
+                {'detail': 'Conta bancária inválida ou não pertencente ao usuário.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        uploaded_file = request.FILES.get('file')
+        if uploaded_file:
+            filename = uploaded_file.name
+            raw_bytes = uploaded_file.read()
+            try:
+                content = raw_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                content = raw_bytes.decode('latin-1', errors='ignore')
+        else:
+            filename = str(request.data.get('filename', 'extrato.csv'))
+            content = str(request.data.get('content', '')).strip()
+
+        if not content:
+            return Response(
+                {'detail': 'O conteúdo do arquivo de extrato está vazio.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = StatementImportService.import_statement(
+            user=request.user,
+            account=account,
+            filename=filename,
+            content=content,
+        )
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class HealthCheckAPIView(APIView):
+    """
+    Endpoint público de monitoramento e prontidão para deploy (Docker / Cloud Load Balancers).
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = []
+
+    def get(self, request, *args, **kwargs):
+        from django.db import connection
+        db_ok = True
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        except Exception:
+            db_ok = False
+
+        http_status = status.HTTP_200_OK if db_ok else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response(
+            {
+                'status': 'ok' if db_ok else 'degraded',
+                'database': 'connected' if db_ok else 'unreachable',
+                'service': 'inwallet-api',
+                'version': '1.0.0',
+            },
+            status=http_status,
+        )
+
 
