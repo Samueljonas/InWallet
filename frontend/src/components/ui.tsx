@@ -18,6 +18,7 @@ import {
   spacing,
   topInset,
 } from "../theme";
+import { Icon, IconName } from "./Icon";
 
 /** Container que centraliza o conteúdo. Aceita fluid para ocupar largura total no desktop. */
 export const Screen: React.FC<{
@@ -81,8 +82,8 @@ export const Button: React.FC<{
         small && styles.buttonSmall,
         { backgroundColor: bg[variant] },
         variant === "outline" && {
-          borderWidth: 1.5,
-          borderColor: colors.primaryBorder,
+          borderWidth: 1,
+          borderColor: colors.borderStrong,
         },
         inactive && { opacity: 0.55 },
         style,
@@ -90,7 +91,11 @@ export const Button: React.FC<{
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "ghost" || variant === "outline" ? colors.primary : colors.white}
+          color={
+            variant === "ghost" || variant === "outline"
+              ? colors.primary
+              : colors.white
+          }
         />
       ) : (
         <Text
@@ -169,7 +174,7 @@ export const SectionTitle: React.FC<{
   right?: ReactNode;
 }> = ({ title, subtitle, right }) => (
   <View style={styles.sectionRow}>
-    <View>
+    <View style={{ flex: 1 }}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {!!subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
     </View>
@@ -178,13 +183,13 @@ export const SectionTitle: React.FC<{
 );
 
 export const EmptyState: React.FC<{
-  icon: string;
+  icon?: IconName;
   title: string;
   subtitle?: string;
-}> = ({ icon, title, subtitle }) => (
+}> = ({ icon = "wallet", title, subtitle }) => (
   <View style={styles.empty}>
     <View style={styles.emptyIconWrap}>
-      <Text style={styles.emptyIcon}>{icon}</Text>
+      <Icon name={icon} size={22} color={colors.textMuted} />
     </View>
     <Text style={styles.emptyTitle}>{title}</Text>
     {!!subtitle && <Text style={styles.emptySub}>{subtitle}</Text>}
@@ -226,7 +231,9 @@ export const Chip: React.FC<{
     </Text>
     {count !== undefined && (
       <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
-        <Text style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}>
+        <Text
+          style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}
+        >
           {count}
         </Text>
       </View>
@@ -251,7 +258,7 @@ const styles = StyleSheet.create({
 
   button: {
     borderRadius: radius.md,
-    paddingVertical: 14,
+    paddingVertical: 13,
     paddingHorizontal: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
@@ -261,34 +268,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
   },
-  buttonText: { fontWeight: "700", fontSize: 15 },
+  buttonText: { fontWeight: "600", fontSize: 14, letterSpacing: 0.1 },
 
   fieldWrap: { marginTop: spacing.md },
   fieldLabel: {
-    color: "#334155",
-    fontSize: 13,
-    fontWeight: "700",
+    color: colors.textMuted,
+    fontSize: 12.5,
+    fontWeight: "600",
     marginBottom: 6,
+    letterSpacing: 0.2,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.borderStrong,
     paddingHorizontal: spacing.md,
   },
   inputRowFocused: {
     borderColor: colors.primary,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceAlt,
   },
   inputRowError: {
     borderColor: colors.expense,
   },
-  input: { flex: 1, color: "#0F172A", fontSize: 15, paddingVertical: 12 },
-  eye: { color: colors.primary, fontSize: 12, fontWeight: "700" },
-  fieldError: { color: colors.expense, fontSize: 12, marginTop: 4, fontWeight: "500" },
+  input: { flex: 1, color: colors.text, fontSize: 14.5, paddingVertical: 11 },
+  eye: { color: colors.primary, fontSize: 12, fontWeight: "600" },
+  fieldError: {
+    color: colors.expense,
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "500",
+  },
   fieldHint: { color: colors.textFaint, fontSize: 12, marginTop: 4 },
 
   card: {
@@ -306,34 +319,40 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "800", letterSpacing: -0.3 },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
   sectionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
 
   empty: {
     alignItems: "center",
-    paddingVertical: spacing.xxl,
+    paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
   emptyIconWrap: {
-    width: 64,
-    height: 64,
+    width: 48,
+    height: 48,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,
   },
-  emptyIcon: { fontSize: 30 },
   emptyTitle: {
     color: colors.text,
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
     textAlign: "center",
   },
   emptySub: {
     color: colors.textMuted,
     fontSize: 13,
-    marginTop: 6,
+    marginTop: 4,
     textAlign: "center",
     lineHeight: 18,
   },
@@ -346,39 +365,44 @@ const styles = StyleSheet.create({
     paddingTop: topInset,
     paddingBottom: spacing.md,
   },
-  headerTitle: { color: colors.text, fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+  },
   headerSub: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
 
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: spacing.md,
     paddingVertical: 8,
     borderRadius: radius.pill,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   chipActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primaryDark,
+    borderColor: colors.primary,
   },
-  chipText: { color: colors.text, fontSize: 13, fontWeight: "600" },
-  chipTextActive: { color: colors.white, fontWeight: "700" },
+  chipText: { color: colors.textMuted, fontSize: 13, fontWeight: "500" },
+  chipTextActive: { color: colors.white, fontWeight: "600" },
   chipBadge: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.surface,
     borderRadius: radius.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     marginLeft: 6,
   },
   chipBadgeActive: {
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
   },
   chipBadgeText: {
     fontSize: 11,
-    fontWeight: "700",
-    color: colors.text,
+    fontWeight: "600",
+    color: colors.textMuted,
   },
   chipBadgeTextActive: {
     color: colors.white,
@@ -392,8 +416,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
   },
 });
-

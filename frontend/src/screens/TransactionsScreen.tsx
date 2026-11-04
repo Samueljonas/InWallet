@@ -17,6 +17,7 @@ import { Account, Transaction } from "../types";
 import { Chip, EmptyState, Header, Screen } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
+import { Icon } from "../components/Icon";
 import { colors, radius, spacing } from "../theme";
 import {
   confirmAction,
@@ -165,8 +166,9 @@ export const TransactionsScreen: React.FC<Props> = ({
               accessibilityRole="button"
               accessibilityLabel="Exportar extrato em CSV"
             >
+              <Icon name="download" size={13} color={colors.primaryLight} />
               <Text style={styles.exportBtnText}>
-                {user?.is_pro ? "📥 Exportar CSV" : "📥 Exportar CSV (PRO)"}
+                {user?.is_pro ? "Exportar CSV" : "Exportar CSV (PRO)"}
               </Text>
             </TouchableOpacity>
           ) : undefined
@@ -185,7 +187,9 @@ export const TransactionsScreen: React.FC<Props> = ({
 
         {/* Barra de Busca Rápida */}
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <View style={styles.searchIcon}>
+            <Icon name="search" size={14} color={colors.textMuted} />
+          </View>
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -203,7 +207,7 @@ export const TransactionsScreen: React.FC<Props> = ({
               accessibilityRole="button"
               accessibilityLabel="Limpar busca"
             >
-              <Text style={styles.clearSearchText}>✕</Text>
+              <Icon name="close" size={12} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -235,7 +239,7 @@ export const TransactionsScreen: React.FC<Props> = ({
               {accounts.map((acc) => (
                 <Chip
                   key={acc.id}
-                  label={`🏦 ${acc.name}`}
+                  label={acc.name}
                   active={accountFilter === acc.id}
                   onPress={() =>
                     setAccountFilter((cur) => (cur === acc.id ? null : acc.id))
@@ -324,7 +328,7 @@ export const TransactionsScreen: React.FC<Props> = ({
               </View>
             ) : (
               <EmptyState
-                icon="🧾"
+                icon="transactions"
                 title="Nenhum lançamento encontrado"
                 subtitle={
                   searchQuery || accountFilter
@@ -340,7 +344,7 @@ export const TransactionsScreen: React.FC<Props> = ({
                 color={colors.primary}
                 style={{ margin: spacing.lg }}
               />
-            ) : null
+            ) : undefined
           }
         />
       )}
@@ -355,6 +359,9 @@ export const TransactionsScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
   filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
   exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
@@ -363,22 +370,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   exportBtnText: {
-    color: colors.primary,
+    color: colors.primaryLight,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "600",
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     marginTop: spacing.md,
   },
   searchIcon: {
-    fontSize: 14,
     marginRight: spacing.sm,
   },
   searchInput: {
@@ -389,11 +395,6 @@ const styles = StyleSheet.create({
   },
   clearSearchBtn: {
     padding: 4,
-  },
-  clearSearchText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    fontWeight: "700",
   },
   chipsScroll: {
     flexDirection: "row",
@@ -412,7 +413,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderRadius: radius.md,
@@ -421,12 +424,12 @@ const styles = StyleSheet.create({
   summaryBarLabel: {
     color: colors.textMuted,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   summaryBarValue: {
     fontSize: 15,
-    fontWeight: "800",
-    letterSpacing: -0.3,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   list: { paddingHorizontal: spacing.lg, paddingBottom: 120 },
   errorBox: { alignItems: "center", marginTop: spacing.xl },
@@ -440,7 +443,7 @@ const styles = StyleSheet.create({
   },
   retry: {
     color: colors.primary,
-    fontWeight: "700",
+    fontWeight: "600",
     fontSize: 13,
   },
 });

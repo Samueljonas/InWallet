@@ -9,8 +9,8 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 
-// Força o tema claro em todo o app (evita que o dark mode do Android deixe fontes brancas em fundo branco)
-Appearance.setColorScheme?.("light");
+// Tema escuro unificado Midnight Navy (#0A0F1E)
+Appearance.setColorScheme?.("dark");
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { RegisterScreen } from "./src/screens/RegisterScreen";
 import { DashboardScreen } from "./src/screens/DashboardScreen";
@@ -104,7 +104,7 @@ function MainNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <MainNavigator />
     </AuthProvider>
   );

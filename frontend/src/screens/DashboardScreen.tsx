@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -21,6 +20,7 @@ import {
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
 import { UpgradeModal } from "../components/UpgradeModal";
+import { Icon } from "../components/Icon";
 import {
   CategoryDistributionChart,
   MonthlyEvolutionChart,
@@ -103,7 +103,7 @@ export const DashboardScreen: React.FC<Props> = ({
 
   return (
     <Screen fluid>
-      {/* Top Header Clean & Frio */}
+      {/* Top Header Minimalista */}
       <View style={styles.topBar}>
         <View style={styles.userInfo}>
           <View style={styles.avatar}>
@@ -112,7 +112,7 @@ export const DashboardScreen: React.FC<Props> = ({
           <View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text style={styles.greeting}>
-                Olá, {user?.first_name || user?.username || "você"} 👋
+                Olá, {user?.first_name || user?.username || "você"}
               </Text>
               {user?.is_pro && (
                 <View style={styles.proHeaderBadge}>
@@ -120,7 +120,7 @@ export const DashboardScreen: React.FC<Props> = ({
                 </View>
               )}
             </View>
-            <Text style={styles.statusSubtitle}>Gestão financeira inteligente</Text>
+            <Text style={styles.statusSubtitle}>Visão geral financeira</Text>
           </View>
         </View>
 
@@ -133,7 +133,7 @@ export const DashboardScreen: React.FC<Props> = ({
               accessibilityLabel="Assinar plano Pro"
               accessibilityRole="button"
             >
-              <Text style={styles.proBtnText}>⭐ Seja PRO</Text>
+              <Text style={styles.proBtnText}>Seja PRO</Text>
             </TouchableOpacity>
           )}
 
@@ -193,7 +193,7 @@ export const DashboardScreen: React.FC<Props> = ({
           </Card>
         ) : (
           <>
-            {/* Card Hero de Saldo Total (Visual Fintech em Azul e Branco) */}
+            {/* Card Hero de Saldo Total */}
             <View style={[styles.heroCard, shadowHero]}>
               <View style={styles.heroTopRow}>
                 <View>
@@ -212,8 +212,8 @@ export const DashboardScreen: React.FC<Props> = ({
               {/* Indicadores Mensais Integrados */}
               <View style={styles.heroStatsRow}>
                 <View style={styles.heroStatItem}>
-                  <Text style={styles.heroStatLabel}>Receitas do Mês</Text>
-                  <Text style={[styles.heroStatValue, { color: "#A7F3D0" }]}>
+                  <Text style={styles.heroStatLabel}>Receitas</Text>
+                  <Text style={[styles.heroStatValue, { color: colors.income }]}>
                     + {formatCurrency(metrics?.monthly_income)}
                   </Text>
                 </View>
@@ -221,8 +221,8 @@ export const DashboardScreen: React.FC<Props> = ({
                 <View style={styles.heroDivider} />
 
                 <View style={styles.heroStatItem}>
-                  <Text style={styles.heroStatLabel}>Despesas do Mês</Text>
-                  <Text style={[styles.heroStatValue, { color: "#FEE2E2" }]}>
+                  <Text style={styles.heroStatLabel}>Despesas</Text>
+                  <Text style={[styles.heroStatValue, { color: colors.expense }]}>
                     - {formatCurrency(metrics?.monthly_expense)}
                   </Text>
                 </View>
@@ -234,7 +234,7 @@ export const DashboardScreen: React.FC<Props> = ({
                   <Text
                     style={[
                       styles.heroStatValue,
-                      { color: net >= 0 ? "#A7F3D0" : "#FEE2E2" },
+                      { color: net >= 0 ? colors.income : colors.expense },
                     ]}
                   >
                     {net >= 0 ? "+" : ""}
@@ -244,7 +244,7 @@ export const DashboardScreen: React.FC<Props> = ({
               </View>
             </View>
 
-            {/* Minhas Contas (Carrossel Horizontal Limpo) */}
+            {/* Minhas Contas */}
             {accounts.length > 0 && (
               <View style={styles.sectionWrap}>
                 <SectionTitle
@@ -256,13 +256,11 @@ export const DashboardScreen: React.FC<Props> = ({
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.accountList}
                 >
-                  {accounts.map((acc, idx) => (
+                  {accounts.map((acc) => (
                     <View key={acc.id} style={[styles.accountCard, shadowCard]}>
                       <View style={styles.accountTop}>
                         <View style={styles.accountIconWrap}>
-                          <Text style={styles.accountIcon}>
-                            {idx % 2 === 0 ? "🏛️" : "💳"}
-                          </Text>
+                          <Icon name="wallet" size={14} color={colors.primary} />
                         </View>
                         <Text style={styles.accountName} numberOfLines={1}>
                           {acc.name}
@@ -277,11 +275,11 @@ export const DashboardScreen: React.FC<Props> = ({
               </View>
             )}
 
-            {/* Metas de Gastos Mensais (Orçamentos por Categoria) */}
+            {/* Metas de Gastos Mensais */}
             {(metrics?.budgets_progress?.length ?? 0) > 0 && (
               <View style={styles.sectionWrap}>
                 <SectionTitle
-                  title="🎯 Metas de Gastos do Mês"
+                  title="Metas de Gastos do Mês"
                   subtitle="Acompanhamento dos seus limites por categoria"
                 />
                 <Card>
@@ -292,7 +290,7 @@ export const DashboardScreen: React.FC<Props> = ({
                         pct >= 100
                           ? colors.expense
                           : pct >= 75
-                          ? "#B45309"
+                          ? "#F59E0B"
                           : colors.income;
                       const clampedWidth = Math.min(100, Math.max(4, pct));
                       return (
@@ -340,8 +338,8 @@ export const DashboardScreen: React.FC<Props> = ({
             {/* Gráfico 1: Distribuição de Despesas por Categoria */}
             <View style={styles.sectionWrap}>
               <SectionTitle
-                title="Para onde foi o dinheiro"
-                subtitle="Divisão percentual dos gastos por categoria"
+                title="Distribuição por Categoria"
+                subtitle="Divisão percentual dos gastos do período"
               />
               <Card>
                 <CategoryDistributionChart
@@ -350,7 +348,7 @@ export const DashboardScreen: React.FC<Props> = ({
               </Card>
             </View>
 
-            {/* Gráfico 2: Evolução no Ano (Comparativo Mensal) */}
+            {/* Gráfico 2: Evolução no Ano */}
             <View style={styles.sectionWrap}>
               <SectionTitle
                 title={`Evolução em ${year}`}
@@ -379,7 +377,7 @@ export const DashboardScreen: React.FC<Props> = ({
                       accessibilityRole="button"
                       accessibilityLabel="Ver todas as transações"
                     >
-                      <Text style={styles.seeAllText}>Ver todas →</Text>
+                      <Text style={styles.seeAllText}>Ver todas</Text>
                     </TouchableOpacity>
                   ) : undefined
                 }
@@ -387,9 +385,9 @@ export const DashboardScreen: React.FC<Props> = ({
               {recent.length === 0 ? (
                 <Card>
                   <EmptyState
-                    icon="🧾"
+                    icon="transactions"
                     title="Nenhuma transação neste mês"
-                    subtitle="Clique no botão abaixo para adicionar sua primeira transação."
+                    subtitle="Toque no botão abaixo para registrar sua primeira movimentação."
                   />
                   <TouchableOpacity
                     style={styles.emptyAddBtn}
@@ -438,30 +436,25 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   avatar: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: colors.white,
-    ...Platform.select({
-      web: {
-        boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
-      } as any,
-    }),
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   avatarText: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: "800",
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "700",
   },
   greeting: {
     color: colors.text,
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: -0.4,
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
   statusSubtitle: {
     color: colors.textMuted,
@@ -469,17 +462,15 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   quickAddBtn: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
   },
   quickAddText: {
-    color: colors.primaryDark,
+    color: colors.white,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   proHeaderBadge: {
     backgroundColor: colors.primary,
@@ -490,20 +481,20 @@ const styles = StyleSheet.create({
   proHeaderBadgeText: {
     color: colors.white,
     fontSize: 10,
-    fontWeight: "900",
+    fontWeight: "700",
   },
   proBtn: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: "#FCD34D",
+    borderColor: colors.primaryBorder,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radius.pill,
   },
   proBtnText: {
-    color: "#B45309",
+    color: colors.primaryLight,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "600",
   },
 
   content: {
@@ -517,19 +508,19 @@ const styles = StyleSheet.create({
   },
   retry: {
     color: colors.primary,
-    fontWeight: "700",
+    fontWeight: "600",
     textAlign: "center",
     marginTop: spacing.md,
   },
 
-  // Hero Card (Alto contraste WCAG AA >= 4.5:1 sobre azul profundo)
+  // Hero Card (Midnight Navy & Royal Blue)
   heroCard: {
     marginTop: spacing.md,
-    backgroundColor: "#1E3A8A", // Blue 900 - Contraste > 8.5:1 para textos claros e indicadores
+    backgroundColor: colors.surface,
     borderRadius: radius.xl,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: "#2563EB",
+    borderColor: colors.primaryBorder,
   },
   heroTopRow: {
     flexDirection: "row",
@@ -537,29 +528,31 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   heroLabel: {
-    color: "#DBEAFE", // Blue 100 - Contraste 9.0:1 sobre #1E3A8A
-    fontSize: 12,
-    fontWeight: "700",
+    color: colors.textMuted,
+    fontSize: 11.5,
+    fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
   },
   heroBalance: {
-    color: colors.white,
-    fontSize: 32,
-    fontWeight: "900",
-    letterSpacing: -0.8,
+    color: colors.text,
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.6,
     marginTop: 4,
   },
   chipMonth: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.pill,
   },
   chipMonthText: {
-    color: colors.white,
+    color: colors.textMuted,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   heroStatsRow: {
     flexDirection: "row",
@@ -568,40 +561,37 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.15)",
+    borderTopColor: colors.border,
   },
   heroStatItem: {
     flex: 1,
   },
-  heroStatLabel: {
-    color: "#DBEAFE",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  heroStatValue: {
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 2,
-    letterSpacing: -0.3,
-  },
   heroDivider: {
     width: 1,
-    height: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    height: 28,
+    backgroundColor: colors.border,
     marginHorizontal: spacing.sm,
+  },
+  heroStatLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  heroStatValue: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    marginTop: 2,
   },
 
   sectionWrap: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
-
-  // Account Cards Carousel
   accountList: {
     gap: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 2,
   },
   accountCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -611,19 +601,16 @@ const styles = StyleSheet.create({
   accountTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
+    gap: 8,
+    marginBottom: spacing.sm,
   },
   accountIconWrap: {
     width: 28,
     height: 28,
     borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
-  },
-  accountIcon: {
-    fontSize: 14,
   },
   accountName: {
     color: colors.textMuted,
@@ -633,9 +620,9 @@ const styles = StyleSheet.create({
   },
   accountBalance: {
     color: colors.text,
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: -0.4,
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
 
   seeAllBtn: {
@@ -645,7 +632,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     color: colors.primary,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   emptyAddBtn: {
     backgroundColor: colors.primarySoft,
@@ -658,9 +645,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryBorder,
   },
   emptyAddBtnText: {
-    color: colors.primary,
+    color: colors.primaryLight,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   budgetsWrap: {
     gap: spacing.lg,
@@ -676,14 +663,14 @@ const styles = StyleSheet.create({
   budgetCatName: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   budgetPctBadge: {
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "700",
   },
   budgetTrack: {
-    height: 10,
+    height: 8,
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.pill,
     overflow: "hidden",
@@ -700,11 +687,11 @@ const styles = StyleSheet.create({
   budgetSpentText: {
     color: colors.textMuted,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   budgetLimitText: {
     color: colors.textFaint,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "500",
   },
 });

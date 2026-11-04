@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { chartPalette, colors, radius, spacing } from "../theme";
 import { MONTH_SHORT, formatCurrency } from "../utils/format";
+import { Icon } from "./Icon";
 
 export interface MonthlySummaryItem {
   month: string;
@@ -193,7 +194,9 @@ export const CategoryDistributionChart: React.FC<{
   if (parsed.length === 0 || grandTotal <= 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>🎯</Text>
+        <View style={styles.emptyIconWrap}>
+          <Icon name="target" size={20} color={colors.textMuted} />
+        </View>
         <Text style={styles.emptyTitle}>Sem despesas no período</Text>
         <Text style={styles.emptySub}>
           Os gastos deste mês aparecerão categorizados aqui graficamente.
@@ -303,9 +306,9 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   savingsPillValue: {
-    color: colors.primaryDark,
+    color: colors.primaryLight,
     fontSize: 14,
-    fontWeight: "900",
+    fontWeight: "700",
   },
 
   barsArea: {
@@ -464,9 +467,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.xl,
   },
-  emptyIcon: {
-    fontSize: 32,
-    marginBottom: spacing.xs,
+  emptyIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.sm,
   },
   emptyTitle: {
     color: colors.text,

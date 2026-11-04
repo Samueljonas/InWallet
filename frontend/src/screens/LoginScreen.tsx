@@ -11,7 +11,8 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
 import { ForgotPasswordModal } from "../components/ForgotPasswordModal";
-import { colors, radius, shadowCard, spacing } from "../theme";
+import { Icon } from "../components/Icon";
+import { colors, radius, spacing } from "../theme";
 import { extractErrorMessage } from "../utils/format";
 
 export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
@@ -56,14 +57,14 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Identidade Visual Clean */}
+          {/* Identidade Visual Minimalista */}
           <View style={styles.brand}>
             <View style={styles.logoBadge}>
-              <Text style={styles.logoIcon}>💳</Text>
+              <Icon name="wallet" size={24} color={colors.primary} />
             </View>
             <Text style={styles.title}>InWallet</Text>
             <Text style={styles.subtitle}>
-              Gestão financeira pessoal limpa, moderna e inteligente
+              Gestão financeira pessoal simples e direta
             </Text>
           </View>
 
@@ -147,24 +148,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logoBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: radius.pill,
+    width: 56,
+    height: 56,
+    borderRadius: radius.lg,
     backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.primaryBorder,
     marginBottom: spacing.sm,
   },
-  logoIcon: {
-    fontSize: 32,
-  },
   title: {
     color: colors.text,
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -0.6,
+    fontSize: 26,
+    fontWeight: "700",
+    letterSpacing: -0.5,
   },
   subtitle: {
     color: colors.textMuted,
@@ -179,9 +177,9 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     color: colors.text,
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: -0.3,
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.2,
     marginBottom: spacing.xs,
   },
   errorBox: {

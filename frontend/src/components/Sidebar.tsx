@@ -4,11 +4,12 @@ import { Tab } from "./TabBar";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import { useAuth } from "../contexts/AuthContext";
 import { UpgradeModal } from "./UpgradeModal";
+import { Icon, IconName } from "./Icon";
 
-const NAV_ITEMS: { key: Tab; icon: string; label: string }[] = [
-  { key: "home", icon: "🏠", label: "Dashboard" },
-  { key: "transactions", icon: "🧾", label: "Extrato & Lançamentos" },
-  { key: "manage", icon: "⚙️", label: "Configurações" },
+const NAV_ITEMS: { key: Tab; icon: IconName; label: string }[] = [
+  { key: "home", icon: "home", label: "Dashboard" },
+  { key: "transactions", icon: "transactions", label: "Extrato & Lançamentos" },
+  { key: "manage", icon: "settings", label: "Configurações" },
 ];
 
 interface SidebarProps {
@@ -30,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand / Logo */}
       <View style={styles.header}>
         <View style={styles.logoBadge}>
-          <Text style={styles.logoIcon}>💳</Text>
+          <Icon name="wallet" size={18} color={colors.primary} />
         </View>
         <View>
           <Text style={styles.brandTitle}>InWallet</Text>
@@ -38,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </View>
       </View>
 
-      {/* Botão Novo Lançamento em Destaque */}
+      {/* Botão Novo Lançamento */}
       <TouchableOpacity
         style={[styles.addButton, shadowCard]}
         onPress={onAdd}
@@ -46,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         accessibilityLabel="Adicionar nova transação"
         accessibilityRole="button"
       >
-        <Text style={styles.addIcon}>+</Text>
+        <Icon name="plus" size={16} color={colors.white} />
         <Text style={styles.addText}>Nova Transação</Text>
       </TouchableOpacity>
 
@@ -64,7 +65,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               accessibilityLabel={item.label}
               accessibilityState={{ selected: active }}
             >
-              <Text style={styles.navIcon}>{item.icon}</Text>
+              <Icon
+                name={item.icon}
+                size={16}
+                color={active ? colors.primary : colors.textMuted}
+              />
               <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                 {item.label}
               </Text>
@@ -90,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Text style={styles.proPromoDesc}>
             Contas ilimitadas, metas e exportação em CSV sem restrições.
           </Text>
-          <Text style={styles.proPromoLink}>Conhecer planos →</Text>
+          <Text style={styles.proPromoLink}>Conhecer planos</Text>
         </TouchableOpacity>
       )}
 
@@ -103,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </Text>
           </View>
           <View style={styles.userInfo}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text style={styles.userName} numberOfLines={1}>
                 {user.first_name || user.username}
               </Text>
@@ -123,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             accessibilityLabel="Sair da conta"
             accessibilityRole="button"
           >
-            <Text style={styles.logoutIcon}>🚪</Text>
+            <Icon name="logout" size={16} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       )}
@@ -139,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 const styles = StyleSheet.create({
   sidebar: {
     width: 260,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRightWidth: 1,
     borderRightColor: colors.border,
     paddingVertical: spacing.xl,
@@ -154,8 +159,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   logoBadge: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
@@ -163,44 +168,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logoIcon: {
-    fontSize: 20,
-  },
   brandTitle: {
-    fontSize: 18,
-    fontWeight: "900",
+    fontSize: 17,
+    fontWeight: "700",
     color: colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   brandSubtitle: {
     fontSize: 11,
-    fontWeight: "600",
     color: colors.textMuted,
+    fontWeight: "500",
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
     marginBottom: spacing.xl,
     gap: spacing.sm,
-  },
-  addIcon: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 22,
   },
   addText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   navGroup: {
-    gap: 6,
+    gap: 4,
   },
   navItem: {
     flexDirection: "row",
@@ -214,23 +210,20 @@ const styles = StyleSheet.create({
   navItemActive: {
     backgroundColor: colors.primarySoft,
   },
-  navIcon: {
-    fontSize: 18,
-  },
   navLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13.5,
+    fontWeight: "500",
     color: colors.textMuted,
   },
   navLabelActive: {
-    color: colors.primary,
-    fontWeight: "800",
+    color: colors.text,
+    fontWeight: "600",
   },
   activeIndicator: {
     position: "absolute",
     right: 0,
-    top: 6,
-    bottom: 6,
+    top: 8,
+    bottom: 8,
     width: 3,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
@@ -254,8 +247,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   avatarText: {
-    fontSize: 14,
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "700",
     color: colors.primary,
   },
   userInfo: {
@@ -263,7 +256,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     color: colors.text,
   },
   userEmail: {
@@ -271,16 +264,14 @@ const styles = StyleSheet.create({
     color: colors.textFaint,
   },
   logoutBtn: {
-    padding: 6,
+    padding: 8,
     borderRadius: radius.sm,
-  },
-  logoutIcon: {
-    fontSize: 16,
+    backgroundColor: colors.surfaceAlt,
   },
   proPromoCard: {
-    backgroundColor: "#F0FDF4",
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: "#BBF7D0",
+    borderColor: colors.primaryBorder,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -295,14 +286,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     color: colors.white,
     fontSize: 10,
-    fontWeight: "900",
+    fontWeight: "700",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.pill,
   },
   proPromoTitle: {
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "600",
     color: colors.text,
   },
   proPromoDesc: {
@@ -313,7 +304,7 @@ const styles = StyleSheet.create({
   },
   proPromoLink: {
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "600",
     color: colors.primary,
   },
   userProBadge: {
@@ -325,6 +316,6 @@ const styles = StyleSheet.create({
   userProBadgeText: {
     color: colors.white,
     fontSize: 9,
-    fontWeight: "900",
+    fontWeight: "700",
   },
 });

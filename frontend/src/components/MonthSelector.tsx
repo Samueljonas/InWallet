@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import { MONTH_NAMES } from "../utils/format";
+import { Icon } from "./Icon";
 
 export const MonthSelector: React.FC<{
   year: number;
@@ -25,7 +26,7 @@ export const MonthSelector: React.FC<{
         accessibilityRole="button"
         accessibilityLabel="Mês anterior"
       >
-        <Text style={styles.arrowText}>‹</Text>
+        <Icon name="arrow-left" size={16} color={colors.textMuted} />
       </TouchableOpacity>
       <TouchableOpacity
         style={{ flex: 1, alignItems: "center" }}
@@ -38,9 +39,9 @@ export const MonthSelector: React.FC<{
           {MONTH_NAMES[month - 1]} {year}
         </Text>
         {!isCurrent ? (
-          <Text style={styles.hint}>toque para voltar ao mês atual</Text>
+          <Text style={styles.hint}>voltar ao mês atual</Text>
         ) : (
-          <Text style={styles.currentBadge}>mês atual</Text>
+          <Text style={styles.currentBadge}>período atual</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -52,7 +53,7 @@ export const MonthSelector: React.FC<{
         accessibilityLabel="Próximo mês"
         accessibilityState={{ disabled: isCurrent }}
       >
-        <Text style={styles.arrowText}>›</Text>
+        <Icon name="arrow-right" size={16} color={colors.textMuted} />
       </TouchableOpacity>
     </View>
   );
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -70,20 +71,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   arrow: {
-    width: 44,
-    height: 38,
+    width: 40,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  arrowText: {
+  label: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  hint: {
     color: colors.primary,
-    fontSize: 26,
-    fontWeight: "700",
-    lineHeight: 28,
+    fontSize: 11,
+    marginTop: 2,
+    fontWeight: "500",
   },
-  label: { color: colors.text, fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
-  hint: { color: colors.primary, fontSize: 11, marginTop: 2, fontWeight: "600" },
-  currentBadge: { color: colors.textFaint, fontSize: 11, marginTop: 2 },
+  currentBadge: {
+    color: colors.textFaint,
+    fontSize: 11,
+    marginTop: 2,
+  },
 });
-

@@ -25,6 +25,7 @@ import {
 } from "../components/ui";
 import { LegalDocType, LegalModal } from "../components/LegalModal";
 import { UpgradeModal } from "../components/UpgradeModal";
+import { Icon } from "../components/Icon";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import {
   confirmAction,
@@ -105,7 +106,7 @@ const ItemRow: React.FC<RowProps> = (p) => (
           accessibilityLabel="Editar lançamento"
           accessibilityRole="button"
         >
-          <Text style={styles.icon}>✏️</Text>
+          <Icon name="edit" size={14} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={p.onDelete}
@@ -114,7 +115,7 @@ const ItemRow: React.FC<RowProps> = (p) => (
           accessibilityLabel="Excluir lançamento"
           accessibilityRole="button"
         >
-          <Text style={styles.icon}>🗑</Text>
+          <Icon name="trash" size={14} color={colors.expense} />
         </TouchableOpacity>
       </>
     )}
@@ -478,7 +479,7 @@ export const ManageScreen: React.FC<{
             }}
           />
           <Chip
-            label={user?.is_pro ? "🎯 Metas" : "🎯 Metas (PRO)"}
+            label={user?.is_pro ? "Metas" : "Metas (PRO)"}
             active={segment === "budgets"}
             count={budgets.length}
             onPress={() => {
@@ -507,7 +508,7 @@ export const ManageScreen: React.FC<{
             {accounts.length === 0 ? (
               <Card>
                 <EmptyState
-                  icon="🏦"
+                  icon="wallet"
                   title="Nenhuma conta cadastrada"
                   subtitle="Cadastre sua primeira conta ou carteira abaixo."
                 />
@@ -632,23 +633,23 @@ export const ManageScreen: React.FC<{
                 activeOpacity={0.88}
               >
                 <View style={styles.proBannerIconWrap}>
-                  <Text style={styles.proBannerIcon}>⭐</Text>
+                  <Icon name="spark" size={16} color={colors.primaryLight} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.proBannerTitle}>
                     Recurso Exclusivo do InWallet PRO
                   </Text>
                   <Text style={styles.proBannerDesc}>
-                    Defina limites para cada categoria e receba alertas inteligentes no Dashboard. Toque para desbloquear!
+                    Defina limites para cada categoria e receba alertas inteligentes no Dashboard. Toque para desbloquear.
                   </Text>
                 </View>
-                <Text style={styles.proBannerArrow}>→</Text>
+                <Icon name="arrow-right" size={14} color={colors.primaryLight} />
               </TouchableOpacity>
             )}
             {budgets.length === 0 ? (
               <Card>
                 <EmptyState
-                  icon="🎯"
+                  icon="target"
                   title="Nenhuma meta definida"
                   subtitle="Defina um limite mensal para suas categorias de despesa abaixo."
                 />
@@ -676,7 +677,7 @@ export const ManageScreen: React.FC<{
                     accessibilityLabel="Editar lançamento"
                     accessibilityRole="button"
                   >
-                    <Text style={styles.icon}>✏️</Text>
+                    <Icon name="edit" size={14} color={colors.textMuted} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => removeBudget(bg)}
@@ -685,7 +686,7 @@ export const ManageScreen: React.FC<{
                     accessibilityLabel="Excluir lançamento"
                     accessibilityRole="button"
                   >
-                    <Text style={styles.icon}>🗑</Text>
+                    <Icon name="trash" size={14} color={colors.expense} />
                   </TouchableOpacity>
                 </View>
               ))
@@ -775,7 +776,8 @@ export const ManageScreen: React.FC<{
               accessibilityRole="link"
               accessibilityLabel="Abrir Termos de Uso"
             >
-              <Text style={styles.legalLinkText}>📄 Termos de Uso</Text>
+              <Icon name="file" size={14} color={colors.primaryLight} />
+              <Text style={styles.legalLinkText}>Termos de Uso</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.legalLinkBtn}
@@ -783,8 +785,9 @@ export const ManageScreen: React.FC<{
               accessibilityRole="link"
               accessibilityLabel="Abrir Política de Privacidade (LGPD)"
             >
+              <Icon name="lock" size={14} color={colors.primaryLight} />
               <Text style={styles.legalLinkText}>
-                🔒 Política de Privacidade (LGPD)
+                Política de Privacidade (LGPD)
               </Text>
             </TouchableOpacity>
           </View>
@@ -824,7 +827,7 @@ export const ManageScreen: React.FC<{
               <ActivityIndicator color={colors.white} />
             ) : (
               <Text style={styles.deleteAccountBtnText}>
-                🗑 Excluir Minha Conta
+                Excluir Minha Conta
               </Text>
             )}
           </TouchableOpacity>
@@ -860,7 +863,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -869,9 +872,9 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: colors.text,
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: -0.2,
+    fontSize: 14.5,
+    fontWeight: "600",
+    letterSpacing: -0.1,
   },
   rowSub: {
     color: colors.textMuted,
@@ -887,14 +890,11 @@ const styles = StyleSheet.create({
   },
   rowBadgeText: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   iconBtn: {
     padding: spacing.sm,
     marginLeft: 4,
-  },
-  icon: {
-    fontSize: 16,
   },
   editActions: {
     flexDirection: "row",
@@ -915,18 +915,21 @@ const styles = StyleSheet.create({
   legalLinkBtn: {
     flex: 1,
     minWidth: 180,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: spacing.md,
     alignItems: "center",
   },
   legalLinkText: {
-    color: colors.primaryDark,
+    color: colors.primaryLight,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   logoutWrap: {
     marginTop: spacing.xl,
@@ -940,14 +943,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     backgroundColor: colors.expenseBg,
     borderRadius: radius.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.expenseBorder,
     padding: spacing.lg,
   },
   dangerTitle: {
     color: colors.expense,
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "700",
   },
   dangerDesc: {
     color: colors.textMuted,
@@ -967,44 +970,38 @@ const styles = StyleSheet.create({
   deleteAccountBtnText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "600",
   },
   proUpgradeBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
     gap: spacing.md,
   },
   proBannerIconWrap: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: radius.md,
-    backgroundColor: "#DBEAFE",
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
     alignItems: "center",
     justifyContent: "center",
   },
-  proBannerIcon: {
-    fontSize: 20,
-  },
   proBannerTitle: {
     fontSize: 14,
-    fontWeight: "800",
-    color: colors.primaryDark,
+    fontWeight: "600",
+    color: colors.text,
   },
   proBannerDesc: {
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
     lineHeight: 16,
-  },
-  proBannerArrow: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.primary,
   },
 });

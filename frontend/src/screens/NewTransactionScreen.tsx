@@ -15,6 +15,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { UpgradeModal } from "../components/UpgradeModal";
 import { Account, Category, Transaction } from "../types";
 import { Button, Card, Chip, Field, Header, Screen } from "../components/ui";
+import { Icon } from "../components/Icon";
 import { colors, radius, shadowCard, spacing } from "../theme";
 import {
   brDateToIso,
@@ -266,7 +267,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
               accessibilityRole="button"
               accessibilityLabel="Voltar"
             >
-              <Text style={styles.back}>←</Text>
+              <Icon name="arrow-left" size={18} color={colors.text} />
             </TouchableOpacity>
           }
         />
@@ -295,7 +296,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   isExpense ? styles.typeTextActive : styles.typeTextInactive,
                 ]}
               >
-                ↓ Despesa
+                Despesa
               </Text>
             </TouchableOpacity>
 
@@ -316,7 +317,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   !isExpense ? styles.typeTextActive : styles.typeTextInactive,
                 ]}
               >
-                ↑ Receita
+                Receita
               </Text>
             </TouchableOpacity>
           </View>
@@ -389,7 +390,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   />
                 ))}
                 <Chip
-                  label={showNewAccount ? "✕ Fechar" : "+ Nova conta"}
+                  label={showNewAccount ? "Fechar" : "+ Nova conta"}
                   onPress={() => setShowNewAccount((s) => !s)}
                 />
               </View>
@@ -435,7 +436,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                   />
                 ))}
                 <Chip
-                  label={showNewCategory ? "✕ Fechar" : "+ Nova categoria"}
+                  label={showNewCategory ? "Fechar" : "+ Nova categoria"}
                   onPress={() => setShowNewCategory((s) => !s)}
                 />
               </View>
@@ -481,7 +482,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                       onPress={() => setInstallmentMode("single")}
                     />
                     <Chip
-                      label={user?.is_pro ? "💳 Parcelar valor" : "💳 Parcelar (PRO)"}
+                      label={user?.is_pro ? "Parcelar valor" : "Parcelar (PRO)"}
                       active={installmentMode === "split"}
                       onPress={() => {
                         if (!user?.is_pro) {
@@ -492,7 +493,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
                       }}
                     />
                     <Chip
-                      label={user?.is_pro ? "🔁 Repetir todo mês" : "🔁 Repetir todo mês (PRO)"}
+                      label={user?.is_pro ? "Repetir todo mês" : "Repetir todo mês (PRO)"}
                       active={installmentMode === "repeat"}
                       onPress={() => {
                         if (!user?.is_pro) {
@@ -603,13 +604,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.pill,
     padding: 4,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.borderStrong,
     marginTop: spacing.sm,
   },
   typeBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 11,
     alignItems: "center",
     borderRadius: radius.pill,
   },
@@ -623,14 +624,14 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   typeText: {
-    fontWeight: "800",
+    fontWeight: "600",
     fontSize: 14,
   },
   typeTextActive: {
     color: colors.white,
   },
   typeTextInactive: {
-    color: "#334155", // Slate 700 - explicitly dark and readable
+    color: colors.textMuted,
   },
   generalError: {
     color: colors.expense,
@@ -645,17 +646,17 @@ const styles = StyleSheet.create({
   },
 
   amountCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.borderStrong,
     marginTop: spacing.lg,
   },
   amountLabel: {
-    color: "#334155",
+    color: colors.textMuted,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -666,13 +667,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   currency: {
-    fontSize: 28,
-    fontWeight: "900",
+    fontSize: 24,
+    fontWeight: "700",
   },
   amountInput: {
     flex: 1,
-    fontSize: 34,
-    fontWeight: "900",
+    fontSize: 30,
+    fontWeight: "700",
     letterSpacing: -0.5,
     paddingVertical: 4,
   },
