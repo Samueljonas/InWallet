@@ -12,13 +12,16 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
 import { ForgotPasswordModal } from "../components/ForgotPasswordModal";
 import { Icon } from "../components/Icon";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { extractErrorMessage } from "../utils/format";
 
 export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
   onNavigateToRegister,
 }) => {
   const { login } = useAuth();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -136,7 +139,7 @@ export const LoginScreen: React.FC<{ onNavigateToRegister: () => void }> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   content: {
     flexGrow: 1,
     justifyContent: "center",
@@ -219,4 +222,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-});
+}));

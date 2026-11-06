@@ -25,7 +25,8 @@ import {
   CategoryDistributionChart,
   MonthlyEvolutionChart,
 } from "../components/Charts";
-import { colors, radius, shadowCard, shadowHero, spacing, topInset } from "../theme";
+import { radius, spacing, topInset } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import {
   extractErrorMessage,
   formatCurrency,
@@ -46,6 +47,8 @@ export const DashboardScreen: React.FC<Props> = ({
   onAdd,
 }) => {
   const { user } = useAuth();
+  const { colors, isDark, toggleTheme, shadowCard, shadowHero } = useTheme();
+  const styles = useStyles();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -125,6 +128,22 @@ export const DashboardScreen: React.FC<Props> = ({
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <TouchableOpacity
+            style={styles.themeIconBtn}
+            onPress={toggleTheme}
+            activeOpacity={0.8}
+            accessibilityLabel={
+              isDark ? "Mudar para tema claro" : "Mudar para tema escuro"
+            }
+            accessibilityRole="button"
+          >
+            <Icon
+              name={isDark ? "sun" : "moon"}
+              size={15}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+
           {!user?.is_pro && (
             <TouchableOpacity
               style={styles.proBtn}
@@ -420,7 +439,7 @@ export const DashboardScreen: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   topBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -694,4 +713,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-});
+  themeIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+}));

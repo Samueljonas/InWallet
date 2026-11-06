@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors, radius, shadowCard, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { MONTH_NAMES } from "../utils/format";
 import { Icon } from "./Icon";
 
@@ -9,6 +10,8 @@ export const MonthSelector: React.FC<{
   month: number; // 1-12
   onChange: (year: number, month: number) => void;
 }> = ({ year, month, onChange }) => {
+  const { colors, shadowCard } = useTheme();
+  const styles = useStyles();
   const now = new Date();
   const isCurrent = year === now.getFullYear() && month === now.getMonth() + 1;
 
@@ -59,7 +62,7 @@ export const MonthSelector: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -97,4 +100,4 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-});
+}));

@@ -19,7 +19,8 @@ import { Chip, EmptyState, Header, Screen } from "../components/ui";
 import { MonthSelector } from "../components/MonthSelector";
 import { TransactionRow } from "../components/TransactionRow";
 import { Icon } from "../components/Icon";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import {
   confirmAction,
   exportTransactionsToCsv,
@@ -48,6 +49,8 @@ export const TransactionsScreen: React.FC<Props> = ({
   onChanged,
 }) => {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const now = new Date();
@@ -379,7 +382,7 @@ export const TransactionsScreen: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
   headerActions: {
     flexDirection: "row",
@@ -490,5 +493,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 13,
   },
-});
+}));
 

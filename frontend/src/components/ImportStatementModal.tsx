@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { api } from "../api/client";
 import { Account } from "../types";
-import { colors, radius, shadowHero, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { extractErrorMessage, formatCurrency, notify } from "../utils/format";
 import { Icon } from "./Icon";
 import { Button, Chip, Input } from "./ui";
@@ -34,6 +35,8 @@ export const ImportStatementModal: React.FC<ImportStatementModalProps> = ({
   accounts,
   onImported,
 }) => {
+  const { colors, shadowHero } = useTheme();
+  const styles = useStyles();
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
     accounts[0]?.id ?? null
   );
@@ -244,7 +247,7 @@ export const ImportStatementModal: React.FC<ImportStatementModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(10, 15, 30, 0.78)",
@@ -389,4 +392,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.text,
   },
-});
+}));

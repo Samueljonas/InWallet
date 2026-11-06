@@ -1,6 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors, radius, shadowCard, spacing } from "../theme";
+import { Text, TouchableOpacity, View } from "react-native";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { Transaction } from "../types";
 import { formatCurrency, formatDate } from "../utils/format";
 import { Icon } from "./Icon";
@@ -10,6 +11,8 @@ export const TransactionRow: React.FC<{
   onPress?: () => void;
   onDelete?: () => void;
 }> = ({ tx, onPress, onDelete }) => {
+  const { colors, shadowCard } = useTheme();
+  const styles = useStyles();
   const isExpense = tx.type === "expense";
   const txTitle = tx.description || tx.category_name || "Sem descrição";
   return (
@@ -86,7 +89,7 @@ export const TransactionRow: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -148,4 +151,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.expenseBorder,
   },
-});
+}));

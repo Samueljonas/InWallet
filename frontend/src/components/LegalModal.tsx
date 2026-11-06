@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { colors, radius, shadowCard, spacing, topInset } from "../theme";
+import { radius, spacing, topInset } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { Button } from "./ui";
 import { Icon } from "./Icon";
 
@@ -85,6 +86,8 @@ export const LegalModal: React.FC<{
   onClose: () => void;
   onAccept?: () => void;
 }> = ({ doc, onClose, onAccept }) => {
+  const { colors, shadowCard } = useTheme();
+  const styles = useStyles();
   if (!doc) return null;
 
   const isTerms = doc === "terms";
@@ -162,7 +165,7 @@ export const LegalModal: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.55)",
@@ -253,5 +256,5 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.surfaceSubtle,
   },
-});
+}));
 

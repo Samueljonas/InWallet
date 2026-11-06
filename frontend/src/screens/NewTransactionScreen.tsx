@@ -16,7 +16,8 @@ import { UpgradeModal } from "../components/UpgradeModal";
 import { Account, Category, Transaction } from "../types";
 import { Button, Card, Chip, Field, Header, Screen } from "../components/ui";
 import { Icon } from "../components/Icon";
-import { colors, radius, shadowCard, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import {
   brDateToIso,
   confirmAction,
@@ -42,6 +43,8 @@ export const NewTransactionScreen: React.FC<Props> = ({
   onSaved,
 }) => {
   const { user } = useAuth();
+  const { colors, shadowCard } = useTheme();
+  const styles = useStyles();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [type, setType] = useState<"expense" | "income">(
     editing?.type ?? "expense",
@@ -585,7 +588,7 @@ export const NewTransactionScreen: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: 120,
@@ -720,4 +723,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     lineHeight: 18,
   },
-});
+}));

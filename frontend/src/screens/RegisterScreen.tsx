@@ -12,7 +12,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button, Card, Field, Screen } from "../components/ui";
 import { LegalDocType, LegalModal } from "../components/LegalModal";
 import { Icon } from "../components/Icon";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { extractErrorMessage, extractFieldErrors } from "../utils/format";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,6 +22,8 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
   onNavigateToLogin,
 }) => {
   const { register } = useAuth();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -236,7 +239,7 @@ export const RegisterScreen: React.FC<{ onNavigateToLogin: () => void }> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   content: {
     flexGrow: 1,
     justifyContent: "center",
@@ -341,4 +344,4 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: "700",
   },
-});
+}));

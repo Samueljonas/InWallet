@@ -25,7 +25,9 @@ export type IconName =
   | "file"
   | "spark"
   | "upload"
-  | "copy";
+  | "copy"
+  | "sun"
+  | "moon";
 
 interface IconProps {
   name: IconName;
@@ -671,6 +673,60 @@ export const Icon: React.FC<IconProps> = ({
               borderColor: color,
               backgroundColor: colors.surface,
               borderRadius: 2,
+            }}
+          />
+        </View>
+      );
+    }
+
+    case "sun": {
+      return (
+        <View style={[styles.wrap, { width: size, height: size }]}>
+          <View
+            style={{
+              width: size * 0.56,
+              height: size * 0.56,
+              borderRadius: size,
+              borderWidth: stroke,
+              borderColor: color,
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              width: size * 0.92,
+              height: stroke,
+              backgroundColor: color,
+              opacity: 0.45,
+              borderRadius: 1,
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              width: stroke,
+              height: size * 0.92,
+              backgroundColor: color,
+              opacity: 0.45,
+              borderRadius: 1,
+            }}
+          />
+        </View>
+      );
+    }
+
+    case "moon": {
+      return (
+        <View style={[styles.wrap, { width: size, height: size }]}>
+          <View
+            style={{
+              width: size * 0.72,
+              height: size * 0.72,
+              borderRadius: size,
+              borderLeftWidth: stroke + 0.5,
+              borderBottomWidth: stroke + 0.5,
+              borderColor: color,
+              transform: [{ rotate: "-15deg" }],
             }}
           />
         </View>
