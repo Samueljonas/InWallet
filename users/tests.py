@@ -103,6 +103,8 @@ class UserAPITests(APITestCase):
         user.profile.refresh_from_db()
         self.assertTrue(user.profile.is_pro)
         self.assertEqual(user.profile.plan, 'pro')
+        self.assertEqual(user.profile.billing_cycle, 'yearly')
+        self.assertFalse(user.profile.cancel_at_period_end)
         self.assertIsNotNone(user.profile.plan_expires_at)
 
     def test_password_reset_flow_and_invalid_token(self):
@@ -204,19 +206,75 @@ class UserAPITests(APITestCase):
         self.assertIn('000201', checkout_res.data['pix_payload'])
         external_id = checkout_res.data['external_id']
 
-        # 2. Webhook confirma o pagamento de forma assíncrona
+        # 2. Webhook confirma o pagamento de forma assíncrona (validando token de segurança)
+        from django.test import override_settings
         self.client.force_authenticate(user=None)
-        webhook_res = self.client.post(
-            '/accounts/api/v1/auth/subscription/webhook/',
-            {'event': 'PAYMENT_CONFIRMED', 'external_id': external_id},
-            format='json'
-        )
+        with override_settings(PAYMENT_WEBHOOK_SECRET='segredo_teste_123'):
+            bad_webhook = self.client.post(
+                '/accounts/api/v1/auth/subscription/webhook/',
+                {'event': 'PAYMENT_CONFIRMED', 'external_id': external_id},
+                HTTP_X_WEBHOOK_TOKEN='token_invalido',
+                format='json',
+            )
+            self.assertEqual(bad_webhook.status_code, status.HTTP_403_FORBIDDEN)
+
+            webhook_res = self.client.post(
+                '/accounts/api/v1/auth/subscription/webhook/',
+                {'event': 'PAYMENT_CONFIRMED', 'external_id': external_id},
+                HTTP_X_WEBHOOK_TOKEN='segredo_teste_123',
+                format='json',
+            )
         self.assertEqual(webhook_res.status_code, status.HTTP_200_OK)
         self.assertEqual(webhook_res.data['payment_status'], 'paid')
 
         user.profile.refresh_from_db()
         self.assertTrue(user.profile.is_pro)
         self.assertEqual(user.profile.plan, 'pro')
+        self.assertEqual(user.profile.billing_cycle, 'yearly')
+        self.assertFalse(user.profile.cancel_at_period_end)
+
+    def test_subscription_change_plan_and_cancel(self):
+        user = User.objects.create_user(
+            username='sub_manage_user',
+            email='submanage@example.com',
+            password='MyPassword123!'
+        )
+        self.client.force_authenticate(user=user)
+
+        # 1. Ativa PRO Anual
+        self.client.post('/accounts/api/v1/auth/subscription/upgrade/', {'period': 'yearly'}, format='json')
+        user.profile.refresh_from_db()
+        self.assertEqual(user.profile.billing_cycle, 'yearly')
+
+        # 2. Troca ciclo para Mensal
+        change_res = self.client.post(
+            '/accounts/api/v1/auth/subscription/change-plan/',
+            {'period': 'monthly'},
+            format='json',
+        )
+        self.assertEqual(change_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(change_res.data['billing_cycle'], 'monthly')
+
+        # 3. Cancela ao final do período (mantém PRO ativo até expirar)
+        cancel_res = self.client.post(
+            '/accounts/api/v1/auth/subscription/cancel/',
+            {'immediate': False},
+            format='json',
+        )
+        self.assertEqual(cancel_res.status_code, status.HTTP_200_OK)
+        self.assertTrue(cancel_res.data['cancel_at_period_end'])
+        self.assertTrue(cancel_res.data['is_pro'])
+
+        # 4. Encerra imediatamente (volta para Free)
+        cancel_now_res = self.client.post(
+            '/accounts/api/v1/auth/subscription/cancel/',
+            {'immediate': True},
+            format='json',
+        )
+        self.assertEqual(cancel_now_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(cancel_now_res.data['plan'], 'free')
+        self.assertFalse(cancel_now_res.data['is_pro'])
+
 
 
 

@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { Icon, IconName } from "./Icon";
 
 export type Tab = "home" | "transactions" | "manage";
@@ -22,6 +23,8 @@ export const TabBar: React.FC<{
   onChange: (t: Tab) => void;
   onAdd: () => void;
 }> = ({ current, onChange, onAdd }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const renderItem = (item: (typeof ITEMS)[number]) => {
     const active = current === item.key;
     return (
@@ -73,7 +76,7 @@ export const TabBar: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   outerContainer: {
     position: "absolute",
     left: 0,
@@ -171,4 +174,4 @@ const styles = StyleSheet.create({
       },
     }),
   },
-});
+}));

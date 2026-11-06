@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Tab } from "./TabBar";
-import { colors, radius, shadowCard, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { UpgradeModal } from "./UpgradeModal";
 import { Icon, IconName } from "./Icon";
@@ -24,6 +25,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onAdd,
 }) => {
   const { user, logout } = useAuth();
+  const { colors, isDark, toggleTheme, shadowCard } = useTheme();
+  const styles = useStyles();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   return (
@@ -99,6 +102,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </TouchableOpacity>
       )}
 
+      {/* Alternador de Tema (Claro / Escuro) */}
+      <TouchableOpacity
+        style={styles.themeToggleBtn}
+        onPress={toggleTheme}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isDark ? "Ativar tema claro" : "Ativar tema escuro"
+        }
+      >
+        <Icon
+          name={isDark ? "sun" : "moon"}
+          size={15}
+          color={colors.textMuted}
+        />
+        <Text style={styles.themeToggleText}>
+          {isDark ? "Tema Claro" : "Tema Escuro"}
+        </Text>
+      </TouchableOpacity>
+
       {/* Perfil & Logout no Rodapé da Sidebar */}
       {user && (
         <View style={styles.userFooter}>
@@ -141,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   sidebar: {
     width: 260,
     backgroundColor: colors.surface,
@@ -318,4 +341,21 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "700",
   },
-});
+  themeToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  themeToggleText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: colors.textMuted,
+  },
+}));

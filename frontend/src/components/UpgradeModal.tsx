@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { colors, radius, shadowCard, shadowHero, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { Button, Input } from "./ui";
 import { api } from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
@@ -57,6 +58,8 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   onSubscribe,
 }) => {
   const { refreshUser } = useAuth();
+  const { colors, shadowCard, shadowHero } = useTheme();
+  const styles = useStyles();
   const [step, setStep] = useState<"plans" | "checkout">("plans");
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
@@ -470,7 +473,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(10, 15, 30, 0.78)",
@@ -735,4 +738,4 @@ const styles = StyleSheet.create({
     color: colors.textFaint,
     fontWeight: "500",
   },
-});
+}));

@@ -67,16 +67,83 @@ class UpgradePlanAPIView(APIView):
         from .models import UserProfile
 
         period = request.data.get('period', 'yearly')
+        if period not in ('monthly', 'yearly'):
+            period = 'yearly'
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         days = 365 if period == 'yearly' else 30
         profile.plan = 'pro'
+        profile.billing_cycle = period
         profile.plan_expires_at = timezone.now() + timedelta(days=days)
+        profile.cancel_at_period_end = False
         profile.save()
 
         return Response({
             'status': 'success',
             'plan': profile.plan,
+            'billing_cycle': profile.billing_cycle,
             'plan_expires_at': profile.plan_expires_at,
+            'cancel_at_period_end': profile.cancel_at_period_end,
+            'is_pro': profile.is_pro,
+        }, status=status.HTTP_200_OK)
+
+
+class SubscriptionChangePlanAPIView(APIView):
+    """
+    Permite ao assinante ativo trocar o ciclo de cobrança entre Mensal (R$ 14,90)
+    e Anual (R$ 119,00) ou reativar a renovação automática.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from .payment_service import PaymentGatewayService
+        from .models import UserProfile
+
+        period = request.data.get('period', 'yearly')
+        if period not in ('monthly', 'yearly'):
+            return Response(
+                {'detail': "Ciclo inválido. Escolha 'monthly' ou 'yearly'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if not profile.is_pro:
+            return Response(
+                {'detail': 'Sua conta está no plano Gratuito. Realize o checkout para ativar o plano PRO.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile = PaymentGatewayService.change_plan(request.user, period)
+        return Response({
+            'status': 'updated',
+            'plan': profile.plan,
+            'billing_cycle': profile.billing_cycle,
+            'plan_expires_at': profile.plan_expires_at,
+            'cancel_at_period_end': profile.cancel_at_period_end,
+            'is_pro': profile.is_pro,
+        }, status=status.HTTP_200_OK)
+
+
+class SubscriptionCancelAPIView(APIView):
+    """
+    Permite cancelar a assinatura PRO:
+    - Por padrão (`immediate=False`), agenda o cancelamento ao término do ciclo já pago
+      (`cancel_at_period_end=True`), mantendo os recursos PRO até `plan_expires_at`.
+    - Se `immediate=True`, encerra o plano PRO imediatamente e retorna ao plano Gratuito.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from .payment_service import PaymentGatewayService
+
+        immediate = bool(request.data.get('immediate', False))
+        profile = PaymentGatewayService.cancel_subscription(request.user, immediate=immediate)
+
+        return Response({
+            'status': 'canceled',
+            'plan': profile.plan,
+            'billing_cycle': profile.billing_cycle,
+            'plan_expires_at': profile.plan_expires_at,
+            'cancel_at_period_end': profile.cancel_at_period_end,
             'is_pro': profile.is_pro,
         }, status=status.HTTP_200_OK)
 
@@ -213,7 +280,7 @@ class PaymentWebhookAPIView(APIView):
             )
 
         if event in ('PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'checkout.session.completed'):
-            PaymentGatewayService.confirm_payment(payment)
+            payment = PaymentGatewayService.confirm_payment(payment)
 
         return Response({'status': 'processed', 'payment_status': payment.status}, status=status.HTTP_200_OK)
 

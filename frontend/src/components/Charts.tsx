@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { chartPalette, colors, radius, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { MONTH_SHORT, formatCurrency } from "../utils/format";
 import { Icon } from "./Icon";
 
@@ -32,6 +33,8 @@ export const MonthlyEvolutionChart: React.FC<{
   selectedMonth: number;
   onSelectMonth?: (month: number) => void;
 }> = ({ summary = [], year, selectedMonth, onSelectMonth }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [activeMonth, setActiveMonth] = useState<number>(selectedMonth || 1);
 
   const safeSummary = Array.isArray(summary) ? summary : [];
@@ -182,6 +185,8 @@ export const MonthlyEvolutionChart: React.FC<{
 export const CategoryDistributionChart: React.FC<{
   categories?: CategoryExpenseItem[];
 }> = ({ categories = [] }) => {
+  const { colors, chartPalette } = useTheme();
+  const styles = useStyles();
   const safeCategories = Array.isArray(categories) ? categories : [];
 
   const parsed = safeCategories.map((c) => ({
@@ -256,7 +261,7 @@ export const CategoryDistributionChart: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   container: {
     width: "100%",
   },
@@ -489,4 +494,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-});
+}));

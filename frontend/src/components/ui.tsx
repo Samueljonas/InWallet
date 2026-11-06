@@ -11,13 +11,12 @@ import {
   ViewStyle,
 } from "react-native";
 import {
-  colors,
   maxContentWidth,
   radius,
-  shadowCard,
   spacing,
   topInset,
 } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { Icon, IconName } from "./Icon";
 
 /** Container que centraliza o conteúdo. Aceita fluid para ocupar largura total no desktop. */
@@ -25,13 +24,16 @@ export const Screen: React.FC<{
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   fluid?: boolean;
-}> = ({ children, style, fluid = false }) => (
-  <View style={styles.screenOuter}>
-    <View style={[styles.screenInner, fluid && styles.screenFluid, style]}>
-      {children}
+}> = ({ children, style, fluid = false }) => {
+  const styles = useStyles();
+  return (
+    <View style={styles.screenOuter}>
+      <View style={[styles.screenInner, fluid && styles.screenFluid, style]}>
+        {children}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 type Variant = "primary" | "success" | "danger" | "ghost" | "outline";
 
@@ -52,6 +54,8 @@ export const Button: React.FC<{
   small,
   style,
 }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const bg: Record<Variant, string> = {
     primary: colors.primary,
     success: colors.income,
@@ -120,6 +124,8 @@ export const Field: React.FC<
     secure?: boolean;
   }
 > = ({ label, error, hint, secure, style, ...rest }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [hidden, setHidden] = useState(true);
   const [focused, setFocused] = useState(false);
 
@@ -166,94 +172,115 @@ export const Input = Field;
 export const Card: React.FC<{
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-}> = ({ children, style }) => (
-  <View style={[styles.card, shadowCard, style]}>{children}</View>
-);
+}> = ({ children, style }) => {
+  const { shadowCard } = useTheme();
+  const styles = useStyles();
+  return <View style={[styles.card, shadowCard, style]}>{children}</View>;
+};
 
 export const SectionTitle: React.FC<{
   title: string;
   subtitle?: string;
   right?: ReactNode;
-}> = ({ title, subtitle, right }) => (
-  <View style={styles.sectionRow}>
-    <View style={{ flex: 1 }}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {!!subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
+}> = ({ title, subtitle, right }) => {
+  const styles = useStyles();
+  return (
+    <View style={styles.sectionRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {!!subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
+      </View>
+      {right}
     </View>
-    {right}
-  </View>
-);
+  );
+};
 
 export const EmptyState: React.FC<{
   icon?: IconName;
   title: string;
   subtitle?: string;
-}> = ({ icon = "wallet", title, subtitle }) => (
-  <View style={styles.empty}>
-    <View style={styles.emptyIconWrap}>
-      <Icon name={icon} size={22} color={colors.textMuted} />
+}> = ({ icon = "wallet", title, subtitle }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyIconWrap}>
+        <Icon name={icon} size={22} color={colors.textMuted} />
+      </View>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      {!!subtitle && <Text style={styles.emptySub}>{subtitle}</Text>}
     </View>
-    <Text style={styles.emptyTitle}>{title}</Text>
-    {!!subtitle && <Text style={styles.emptySub}>{subtitle}</Text>}
-  </View>
-);
+  );
+};
 
 export const Header: React.FC<{
   title: string;
   subtitle?: string;
   left?: ReactNode;
   right?: ReactNode;
-}> = ({ title, subtitle, left, right }) => (
-  <View style={styles.header}>
-    {left}
-    <View style={{ flex: 1 }}>
-      <Text style={styles.headerTitle}>{title}</Text>
-      {!!subtitle && <Text style={styles.headerSub}>{subtitle}</Text>}
+}> = ({ title, subtitle, left, right }) => {
+  const styles = useStyles();
+  return (
+    <View style={styles.header}>
+      {left}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headerTitle}>{title}</Text>
+        {!!subtitle && <Text style={styles.headerSub}>{subtitle}</Text>}
+      </View>
+      {right}
     </View>
-    {right}
-  </View>
-);
+  );
+};
 
 export const Chip: React.FC<{
   label: string;
   active?: boolean;
   onPress: () => void;
   count?: number;
-}> = ({ label, active, onPress, count }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.8}
-    accessibilityRole="button"
-    accessibilityLabel={count !== undefined ? `${label}, ${count}` : label}
-    accessibilityState={{ selected: !!active }}
-    style={[styles.chip, active && styles.chipActive]}
-  >
-    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-      {label}
-    </Text>
-    {count !== undefined && (
-      <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
-        <Text
-          style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}
-        >
-          {count}
-        </Text>
-      </View>
-    )}
-  </TouchableOpacity>
-);
+}> = ({ label, active, onPress, count }) => {
+  const styles = useStyles();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={count !== undefined ? `${label}, ${count}` : label}
+      accessibilityState={{ selected: !!active }}
+      style={[styles.chip, active && styles.chipActive]}
+    >
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+        {label}
+      </Text>
+      {count !== undefined && (
+        <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
+          <Text
+            style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}
+          >
+            {count}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 export const Badge: React.FC<{
   label: string;
   color?: string;
   bg?: string;
-}> = ({ label, color = colors.primary, bg = colors.primarySoft }) => (
-  <View style={[styles.badge, { backgroundColor: bg }]}>
-    <Text style={[styles.badgeText, { color }]}>{label}</Text>
-  </View>
-);
+}> = ({ label, color, bg }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const finalColor = color ?? colors.primary;
+  const finalBg = bg ?? colors.primarySoft;
+  return (
+    <View style={[styles.badge, { backgroundColor: finalBg }]}>
+      <Text style={[styles.badgeText, { color: finalColor }]}>{label}</Text>
+    </View>
+  );
+};
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   screenOuter: { flex: 1, backgroundColor: colors.bg, alignItems: "center" },
   screenInner: { flex: 1, width: "100%", maxWidth: maxContentWidth },
   screenFluid: { maxWidth: 1200 },
@@ -421,4 +448,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.text,
   },
-});
+}));

@@ -40,8 +40,25 @@ class DashboardService:
         monthly_txs = user_txs.filter(date__year=year, date__month=month)
         yearly_txs = user_txs.filter(date__year=year)
 
-        monthly_income = monthly_txs.filter(type='income').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        monthly_expense = monthly_txs.filter(type='expense').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        # Agregação condicional em consulta única (evita múltiplas viagens ao banco)
+        monthly_totals = monthly_txs.aggregate(
+            income=Sum(
+                Case(
+                    When(type='income', then=F('amount')),
+                    default=Decimal('0.00'),
+                    output_field=DecimalField(),
+                )
+            ),
+            expense=Sum(
+                Case(
+                    When(type='expense', then=F('amount')),
+                    default=Decimal('0.00'),
+                    output_field=DecimalField(),
+                )
+            ),
+        )
+        monthly_income = monthly_totals['income'] or Decimal('0.00')
+        monthly_expense = monthly_totals['expense'] or Decimal('0.00')
         monthly_net = monthly_income - monthly_expense
 
         # All expenses by category in the month

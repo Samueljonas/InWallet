@@ -1,16 +1,12 @@
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Appearance,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
-
-// Tema escuro unificado Midnight Navy (#0A0F1E)
-Appearance.setColorScheme?.("dark");
+import {
+  createThemedStyles,
+  ThemeProvider,
+  useTheme,
+} from "./src/contexts/ThemeContext";
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { RegisterScreen } from "./src/screens/RegisterScreen";
 import { DashboardScreen } from "./src/screens/DashboardScreen";
@@ -19,12 +15,22 @@ import { ManageScreen } from "./src/screens/ManageScreen";
 import { NewTransactionScreen } from "./src/screens/NewTransactionScreen";
 import { Tab, TabBar } from "./src/components/TabBar";
 import { Sidebar } from "./src/components/Sidebar";
-import { colors } from "./src/theme";
 import { Transaction } from "./src/types";
 
+/** Largura a partir da qual o layout troca TabBar inferior por Sidebar lateral. */
+const DESKTOP_BREAKPOINT = 840;
+
+/**
+ * Navegação raiz baseada em estado (sem react-navigation).
+ * - Não autenticado: alterna entre Login e Cadastro.
+ * - Formulário de transação aberto: ocupa a tela inteira.
+ * - Caso contrário: abas Início / Extrato / Gerenciar.
+ */
 function MainNavigator() {
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 840;
+  const isDesktop = width >= DESKTOP_BREAKPOINT;
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   const { isAuthenticated, isLoading } = useAuth();
   const [authRoute, setAuthRoute] = useState<"login" | "register">("login");
@@ -32,7 +38,8 @@ function MainNavigator() {
   const [form, setForm] = useState<{ open: boolean; editing?: Transaction }>({
     open: false,
   });
-  // Sempre que algo muda (criar/editar/excluir), as telas recarregam.
+  // Contador incrementado a cada criação/edição/exclusão: as telas observam
+  // `refreshKey` em seus efeitos e recarregam os dados quando ele muda.
   const [refreshKey, setRefreshKey] = useState(0);
   const bump = () => setRefreshKey((k) => k + 1);
 
@@ -101,16 +108,24 @@ function MainNavigator() {
   );
 }
 
+/** StatusBar acompanha o tema: ícones claros no escuro e vice-versa. */
+function ThemedStatusBar() {
+  const { isDark } = useTheme();
+  return <StatusBar style={isDark ? "light" : "dark"} />;
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
-      <MainNavigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ThemedStatusBar />
+        <MainNavigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   app: { flex: 1, backgroundColor: colors.bg },
   appDesktop: { flexDirection: "row" },
   center: {
@@ -119,4 +134,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-});
+}));

@@ -6,7 +6,9 @@ export interface User {
   last_name?: string;
   is_pro?: boolean;
   plan?: "free" | "pro";
+  billing_cycle?: "monthly" | "yearly";
   plan_expires_at?: string | null;
+  cancel_at_period_end?: boolean;
 }
 
 export interface Account {

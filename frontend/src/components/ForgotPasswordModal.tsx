@@ -10,7 +10,8 @@ import {
   View,
 } from "react-native";
 import { api } from "../api/client";
-import { colors, radius, shadowHero, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import { extractErrorMessage, extractFieldErrors, notify } from "../utils/format";
 import { Button, Field } from "./ui";
 
@@ -23,6 +24,8 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
   visible,
   onClose,
 }) => {
+  const { shadowHero } = useTheme();
+  const styles = useStyles();
   const [step, setStep] = useState<"request" | "confirm">("request");
   const [email, setEmail] = useState("");
   const [uid, setUid] = useState("");
@@ -267,7 +270,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(10, 15, 30, 0.72)",
@@ -359,5 +362,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-});
+}));
 

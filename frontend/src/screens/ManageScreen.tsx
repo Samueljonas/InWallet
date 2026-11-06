@@ -26,12 +26,14 @@ import {
 import { LegalDocType, LegalModal } from "../components/LegalModal";
 import { UpgradeModal } from "../components/UpgradeModal";
 import { Icon } from "../components/Icon";
-import { colors, radius, shadowCard, spacing } from "../theme";
+import { radius, spacing } from "../theme";
+import { createThemedStyles, useTheme } from "../contexts/ThemeContext";
 import {
   confirmAction,
   extractErrorMessage,
   formatCurrency,
   formatCurrencyInput,
+  formatDate,
   notify,
   parseAmount,
 } from "../utils/format";
@@ -52,81 +54,87 @@ interface RowProps {
   onDelete: () => void;
 }
 
-const ItemRow: React.FC<RowProps> = (p) => (
-  <View style={[styles.row, shadowCard]}>
-    {p.editing ? (
-      <View style={{ flex: 1 }}>
-        <Field
-          value={p.editValue}
-          onChangeText={p.onEditChange}
-          placeholder="Novo nome"
-          autoFocus
-        />
-        <View style={styles.editActions}>
-          <Button title="Salvar" small onPress={p.onSaveEdit} />
-          <Button
-            title="Cancelar"
-            small
-            variant="ghost"
-            onPress={p.onCancelEdit}
-          />
-        </View>
-      </View>
-    ) : (
-      <>
+const ItemRow: React.FC<RowProps> = (p) => {
+  const { colors, shadowCard } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={[styles.row, shadowCard]}>
+      {p.editing ? (
         <View style={{ flex: 1 }}>
-          <Text style={styles.rowTitle}>{p.title}</Text>
-          {!!p.subtitle && <Text style={styles.rowSub}>{p.subtitle}</Text>}
+          <Field
+            value={p.editValue}
+            onChangeText={p.onEditChange}
+            placeholder="Novo nome"
+            autoFocus
+          />
+          <View style={styles.editActions}>
+            <Button title="Salvar" small onPress={p.onSaveEdit} />
+            <Button
+              title="Cancelar"
+              small
+              variant="ghost"
+              onPress={p.onCancelEdit}
+            />
+          </View>
         </View>
-        {!!p.badge && (
-          <View
-            style={[
-              styles.rowBadge,
-              {
-                backgroundColor: p.badgeColor
-                  ? `${p.badgeColor}18`
-                  : colors.surfaceAlt,
-              },
-            ]}
-          >
-            <Text
+      ) : (
+        <>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowTitle}>{p.title}</Text>
+            {!!p.subtitle && <Text style={styles.rowSub}>{p.subtitle}</Text>}
+          </View>
+          {!!p.badge && (
+            <View
               style={[
-                styles.rowBadgeText,
-                { color: p.badgeColor || colors.textMuted },
+                styles.rowBadge,
+                {
+                  backgroundColor: p.badgeColor
+                    ? `${p.badgeColor}18`
+                    : colors.surfaceAlt,
+                },
               ]}
             >
-              {p.badge}
-            </Text>
-          </View>
-        )}
-        <TouchableOpacity
-          onPress={p.onStartEdit}
-          hitSlop={8}
-          style={styles.iconBtn}
-          accessibilityLabel="Editar lançamento"
-          accessibilityRole="button"
-        >
-          <Icon name="edit" size={14} color={colors.textMuted} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={p.onDelete}
-          hitSlop={8}
-          style={styles.iconBtn}
-          accessibilityLabel="Excluir lançamento"
-          accessibilityRole="button"
-        >
-          <Icon name="trash" size={14} color={colors.expense} />
-        </TouchableOpacity>
-      </>
-    )}
-  </View>
-);
+              <Text
+                style={[
+                  styles.rowBadgeText,
+                  { color: p.badgeColor || colors.textMuted },
+                ]}
+              >
+                {p.badge}
+              </Text>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={p.onStartEdit}
+            hitSlop={8}
+            style={styles.iconBtn}
+            accessibilityLabel="Editar lançamento"
+            accessibilityRole="button"
+          >
+            <Icon name="edit" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={p.onDelete}
+            hitSlop={8}
+            style={styles.iconBtn}
+            accessibilityLabel="Excluir lançamento"
+            accessibilityRole="button"
+          >
+            <Icon name="trash" size={14} color={colors.expense} />
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+};
 
 export const ManageScreen: React.FC<{
   refreshKey: number;
   onChanged: () => void;
 }> = ({ refreshKey, onChanged }) => {
-  const { user, logout, deleteAccount } = useAuth();
+  const { user, logout, deleteAccount, refreshUser } = useAuth();
+  const { colors, shadowCard, name: themeName, setTheme } = useTheme();
+  const styles = useStyles();
   const [segment, setSegment] = useState<Segment>("accounts");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -153,6 +161,54 @@ export const ManageScreen: React.FC<{
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [managingSub, setManagingSub] = useState(false);
+
+  async function handleSwitchPlan(targetCycle: "monthly" | "yearly") {
+    try {
+      setManagingSub(true);
+      await api.post("/accounts/api/v1/auth/subscription/change-plan/", {
+        period: targetCycle,
+      });
+      await refreshUser();
+      notify(
+        "Plano atualizado",
+        targetCycle === "yearly"
+          ? "Seu ciclo foi alterado para o Plano Anual (R$ 119,00/ano)."
+          : "Seu ciclo foi alterado para o Plano Mensal (R$ 14,90/mês).",
+      );
+    } catch (err) {
+      notify("Erro ao trocar plano", extractErrorMessage(err));
+    } finally {
+      setManagingSub(false);
+    }
+  }
+
+  async function handleCancelSubscription(immediate: boolean) {
+    const ok = await confirmAction(
+      immediate ? "Encerrar PRO imediatamente?" : "Cancelar renovação automática?",
+      immediate
+        ? "Sua conta voltará imediatamente para o plano Gratuito (limite de 2 contas e sem metas/parcelamentos)."
+        : "Você continuará com todos os benefícios PRO até o fim do período vigente e não será cobrado novamente.",
+    );
+    if (!ok) return;
+    try {
+      setManagingSub(true);
+      await api.post("/accounts/api/v1/auth/subscription/cancel/", {
+        immediate,
+      });
+      await refreshUser();
+      notify(
+        immediate ? "Plano PRO encerrado" : "Cancelamento agendado",
+        immediate
+          ? "Sua conta retornou ao plano Gratuito."
+          : "A renovação automática foi desativada. Seu acesso PRO segue ativo até o fim do período atual.",
+      );
+    } catch (err) {
+      notify("Erro ao cancelar assinatura", extractErrorMessage(err));
+    } finally {
+      setManagingSub(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -728,6 +784,201 @@ export const ManageScreen: React.FC<{
           </>
         )}
 
+        {/* Aparência do Aplicativo — Tema Escuro vs Claro */}
+        <SectionTitle
+          title="Aparência do Aplicativo"
+          subtitle="Escolha entre o tema Midnight Navy (Escuro) ou Daylight Slate (Claro)"
+        />
+        <Card>
+          <View style={styles.themeRow}>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                themeName === "dark" && styles.themeOptionActive,
+              ]}
+              onPress={() => setTheme("dark")}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Ativar tema escuro"
+              accessibilityState={{ selected: themeName === "dark" }}
+            >
+              <Icon
+                name="moon"
+                size={16}
+                color={themeName === "dark" ? colors.primary : colors.textMuted}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.themeOptionTitle,
+                    themeName === "dark" && styles.themeOptionTitleActive,
+                  ]}
+                >
+                  Modo Escuro
+                </Text>
+                <Text style={styles.themeOptionDesc}>Midnight Navy</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                themeName === "light" && styles.themeOptionActive,
+              ]}
+              onPress={() => setTheme("light")}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Ativar tema claro"
+              accessibilityState={{ selected: themeName === "light" }}
+            >
+              <Icon
+                name="sun"
+                size={16}
+                color={
+                  themeName === "light" ? colors.primary : colors.textMuted
+                }
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.themeOptionTitle,
+                    themeName === "light" && styles.themeOptionTitleActive,
+                  ]}
+                >
+                  Modo Claro
+                </Text>
+                <Text style={styles.themeOptionDesc}>Daylight Slate</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </Card>
+
+        {/* Gestão de Assinatura — Troca de Plano e Cancelamento */}
+        <SectionTitle
+          title="Assinatura e Plano"
+          subtitle="Gerencie seu ciclo de cobrança, troque de plano ou cancele quando quiser"
+        />
+        <Card>
+          <View style={styles.subHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>
+                {user?.is_pro
+                  ? user.billing_cycle === "monthly"
+                    ? "InWallet PRO • Plano Mensal (R$ 14,90/mês)"
+                    : "InWallet PRO • Plano Anual (R$ 119,00/ano)"
+                  : "Plano Gratuito (Free)"}
+              </Text>
+              <Text style={styles.rowSub}>
+                {user?.is_pro
+                  ? user.plan_expires_at
+                    ? `${user.cancel_at_period_end ? "Acesso válido até" : "Próxima renovação em"}: ${formatDate(user.plan_expires_at.slice(0, 10))}`
+                    : "Assinatura PRO vitalícia / ativa"
+                  : "Até 2 contas bancárias • Sem metas mensais ou parcelamentos"}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.subStatusBadge,
+                {
+                  backgroundColor: user?.is_pro
+                    ? user.cancel_at_period_end
+                      ? colors.warningBg
+                      : colors.primarySoft
+                    : colors.surfaceAlt,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.subStatusText,
+                  {
+                    color: user?.is_pro
+                      ? user.cancel_at_period_end
+                        ? colors.warning
+                        : colors.primary
+                      : colors.textMuted,
+                  },
+                ]}
+              >
+                {user?.is_pro
+                  ? user.cancel_at_period_end
+                    ? "CANCELAMENTO AGENDADO"
+                    : "PRO ATIVO"
+                  : "FREE"}
+              </Text>
+            </View>
+          </View>
+
+          {user?.is_pro ? (
+            <View style={styles.subActionsCol}>
+              {/* Troca entre Mensal e Anual */}
+              <Button
+                title={
+                  user.billing_cycle === "monthly"
+                    ? "Mudar para Plano Anual (Economize 33% • R$ 119/ano)"
+                    : "Mudar para Plano Mensal (R$ 14,90/mês)"
+                }
+                variant="outline"
+                loading={managingSub}
+                onPress={() =>
+                  handleSwitchPlan(
+                    user.billing_cycle === "monthly" ? "yearly" : "monthly",
+                  )
+                }
+              />
+
+              {/* Reativar renovação se estava agendado para cancelar */}
+              {user.cancel_at_period_end ? (
+                <View style={styles.subCancelButtonsRow}>
+                  <Button
+                    title="Reativar Renovação Automática"
+                    variant="primary"
+                    small
+                    loading={managingSub}
+                    onPress={() =>
+                      handleSwitchPlan(user.billing_cycle || "yearly")
+                    }
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    title="Encerrar PRO Agora"
+                    variant="danger"
+                    small
+                    loading={managingSub}
+                    onPress={() => handleCancelSubscription(true)}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              ) : (
+                <View style={styles.subCancelButtonsRow}>
+                  <Button
+                    title="Cancelar Renovação"
+                    variant="ghost"
+                    small
+                    loading={managingSub}
+                    onPress={() => handleCancelSubscription(false)}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    title="Encerrar PRO Imediatamente"
+                    variant="danger"
+                    small
+                    loading={managingSub}
+                    onPress={() => handleCancelSubscription(true)}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              )}
+            </View>
+          ) : (
+            <Button
+              title="Fazer Upgrade para o InWallet PRO"
+              onPress={() => setShowUpgradeModal(true)}
+              style={{ marginTop: spacing.md }}
+            />
+          )}
+        </Card>
+
         {/* Segurança da Conta — Alteração de Senha */}
         <SectionTitle
           title="Segurança da Conta"
@@ -844,7 +1095,7 @@ export const ManageScreen: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(({ colors }) => ({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: 120,
@@ -1004,4 +1255,61 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 16,
   },
-});
+  themeRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  themeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  themeOptionTitle: {
+    fontSize: 13.5,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  themeOptionTitleActive: {
+    color: colors.primary,
+  },
+  themeOptionDesc: {
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  subHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  subStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  subStatusText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  subActionsCol: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  subCancelButtonsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+}));
