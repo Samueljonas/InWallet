@@ -10,8 +10,12 @@ from .models import UserProfile, PaymentTransaction
 
 class PaymentGatewayService:
     """
-    Serviço de Gateway de Pagamentos (Pix EMV BR Code & Cartão de Crédito),
-    compatível com webhooks Asaas/Stripe e fallback nativo integrado.
+    Serviço de Gateway de Pagamentos e Gestão de Assinaturas (InWallet PRO).
+    Responsável por:
+      1. Geração de payload Pix EMVCo / BR Code (padrão BACEN com CRC16-CCITT).
+      2. Criação e confirmação idempotente de transações de checkout.
+      3. Troca de ciclo de assinatura (Mensal ⇄ Anual).
+      4. Cancelamento agendado ao fim do período vigente ou cancelamento imediato.
     """
 
     PLAN_PRICES = {
@@ -26,7 +30,10 @@ class PaymentGatewayService:
 
     @staticmethod
     def _crc16_ccitt(payload: str) -> str:
-        """Calcula o checksum CRC16-CCITT (0xFFFF) padrão do Banco Central (BR Code Pix)."""
+        """
+        Calcula o checksum CRC16-CCITT (polinômio 0x1021, valor inicial 0xFFFF)
+        exigido no campo ID 63 do padrão BR Code (Pix Copia e Cola) do Banco Central.
+        """
         crc = 0xFFFF
         polynomial = 0x1021
         for byte in payload.encode('utf-8'):
@@ -41,7 +48,7 @@ class PaymentGatewayService:
     @classmethod
     def generate_pix_brcode(cls, txid: str, amount: Decimal, merchant_name: str = "INWALLET FINTECH") -> str:
         """
-        Gera um payload EMVCo / BR Code (Pix Copia e Cola) válido conforme especificação do BACEN.
+        Monta a árvore TLV (Tag-Length-Value) do EMVCo / BR Code e anexa o CRC16 ao final.
         """
         pix_key = getattr(settings, 'PIX_MERCHANT_KEY', 'pagamentos@inwallet.app')
         city = getattr(settings, 'PIX_MERCHANT_CITY', 'SAO PAULO')
@@ -74,7 +81,13 @@ class PaymentGatewayService:
 
     @classmethod
     @db_transaction.atomic
-    def create_checkout(cls, user, period: str = 'yearly', payment_method: str = 'pix', card_data: dict | None = None) -> PaymentTransaction:
+    def create_checkout(
+        cls,
+        user,
+        period: str = 'yearly',
+        payment_method: str = 'pix',
+        card_data: dict | None = None,
+    ) -> PaymentTransaction:
         if period not in cls.PLAN_PRICES:
             period = 'yearly'
         if payment_method not in ('pix', 'credit_card'):
@@ -98,7 +111,7 @@ class PaymentGatewayService:
             pix_payload=pix_payload,
         )
 
-        # Se for cartão de crédito com dados válidos informados no checkout, aprova imediatamente
+        # Em checkout via cartão, liquida a transação na mesma transação atômica
         if payment_method == 'credit_card' and card_data:
             cls.confirm_payment(payment)
 
@@ -109,26 +122,65 @@ class PaymentGatewayService:
     def confirm_payment(cls, payment: PaymentTransaction) -> PaymentTransaction:
         """
         Confirma o pagamento de uma transação de assinatura e ativa/estende o plano PRO do usuário.
-        Idempotente: chamadas repetidas para uma transação já paga não duplicam o período.
+        Usa select_for_update para garantir idempotência sob webhooks concorrentes.
         """
-        if payment.status == 'paid':
-            return payment
+        locked_payment = PaymentTransaction.objects.select_for_update().get(pk=payment.pk)
+        if locked_payment.status == 'paid':
+            return locked_payment
 
         now = timezone.now()
-        payment.status = 'paid'
-        payment.paid_at = now
-        payment.save(update_fields=['status', 'paid_at', 'updated_at'])
+        locked_payment.status = 'paid'
+        locked_payment.paid_at = now
+        locked_payment.save(update_fields=['status', 'paid_at', 'updated_at'])
 
-        profile, _ = UserProfile.objects.get_or_create(user=payment.user)
-        days = cls.PLAN_DAYS.get(payment.period, 365)
+        profile, _ = UserProfile.objects.select_for_update().get_or_create(user=locked_payment.user)
+        days = cls.PLAN_DAYS.get(locked_payment.period, 365)
 
+        # Se o usuário já está ativo no PRO, soma os novos dias ao final da vigência atual
         base_date = now
         if profile.plan == 'pro' and profile.plan_expires_at and profile.plan_expires_at > now:
             base_date = profile.plan_expires_at
 
         profile.plan = 'pro'
+        profile.billing_cycle = locked_payment.period
         profile.plan_expires_at = base_date + timedelta(days=days)
-        profile.save(update_fields=['plan', 'plan_expires_at', 'updated_at'])
+        profile.cancel_at_period_end = False
+        profile.save(update_fields=['plan', 'billing_cycle', 'plan_expires_at', 'cancel_at_period_end', 'updated_at'])
 
-        return payment
+        return locked_payment
 
+    @classmethod
+    @db_transaction.atomic
+    def change_plan(cls, user, new_period: str) -> UserProfile:
+        """
+        Altera o ciclo de cobrança da assinatura ativa (Mensal ⇄ Anual)
+        e reativa a renovação automática caso estivesse com cancelamento agendado.
+        """
+        if new_period not in ('monthly', 'yearly'):
+            raise ValueError("Ciclo inválido. Escolha 'monthly' ou 'yearly'.")
+
+        profile, _ = UserProfile.objects.select_for_update().get_or_create(user=user)
+        profile.billing_cycle = new_period
+        profile.cancel_at_period_end = False
+        profile.save(update_fields=['billing_cycle', 'cancel_at_period_end', 'updated_at'])
+        return profile
+
+    @classmethod
+    @db_transaction.atomic
+    def cancel_subscription(cls, user, immediate: bool = False) -> UserProfile:
+        """
+        Cancela a assinatura PRO do usuário:
+        - `immediate=False` (padrão): agenda o cancelamento para o fim do ciclo já pago (`cancel_at_period_end=True`),
+          preservando o acesso PRO até `plan_expires_at`.
+        - `immediate=True`: encerra o plano PRO imediatamente e retorna para 'free'.
+        """
+        profile, _ = UserProfile.objects.select_for_update().get_or_create(user=user)
+        if immediate or not profile.plan_expires_at or profile.plan_expires_at <= timezone.now():
+            profile.plan = 'free'
+            profile.plan_expires_at = None
+            profile.cancel_at_period_end = False
+        else:
+            profile.cancel_at_period_end = True
+
+        profile.save(update_fields=['plan', 'plan_expires_at', 'cancel_at_period_end', 'updated_at'])
+        return profile

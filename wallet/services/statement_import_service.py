@@ -228,24 +228,33 @@ class StatementImportService:
             for c in Category.objects.filter(user=user)
         }
 
+        # Pré-carrega todas as tags [REF:...] existentes na conta em 1 única consulta
+        # (evita N+1 queries durante a importação de extratos longos)
+        existing_notes = Transaction.objects.filter(
+            user=user,
+            account=account,
+            note__contains='[REF:',
+        ).values_list('note', flat=True)
+        existing_refs: set[str] = set()
+        for note_str in existing_notes:
+            if note_str:
+                for match in re.findall(r'\[REF:([^\]]+)\]', note_str):
+                    existing_refs.add(match)
+
         imported_count = 0
         skipped_count = 0
         total_income = Decimal('0.00')
         total_expense = Decimal('0.00')
 
         for item in parsed_entries:
-            ref_tag = f"[REF:{item['external_ref']}]"
+            ext_ref = item['external_ref']
+            ref_tag = f"[REF:{ext_ref}]"
 
-            # Verifica duplicidade por referência única na conta do usuário
-            already_exists = Transaction.objects.filter(
-                user=user,
-                account=account,
-                note__icontains=ref_tag,
-            ).exists()
-
-            if already_exists:
+            # Verifica duplicidade em O(1) na memória (tanto contra o banco quanto dentro do mesmo arquivo)
+            if ext_ref in existing_refs:
                 skipped_count += 1
                 continue
+            existing_refs.add(ext_ref)
 
             category = cls._resolve_category(
                 user=user,

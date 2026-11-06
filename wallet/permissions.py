@@ -1,18 +1,13 @@
 from rest_framework import permissions
+from users.models import is_user_pro
 
 
 class IsProUser(permissions.BasePermission):
     """
-    Permissão que exige plano Pro ativo.
+    Permissão DRF que restringe endpoints exclusivos aos assinantes InWallet PRO.
+    Reutiliza o helper centralizado `is_user_pro(user)` (princípio DRY).
     """
     message = "Este recurso é exclusivo do plano Pro. Faça upgrade para desbloquear."
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        profile = getattr(request.user, 'profile', None)
-        if not profile:
-            from users.models import UserProfile
-            profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        return profile.is_pro
-
+        return is_user_pro(request.user)

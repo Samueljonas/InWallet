@@ -76,6 +76,8 @@ class TransactionService:
             return tx
 
         # Parcelado (split) ou Fixo/Recorrente (repeat)
+        # No modo 'split', eventuais resíduos de centavos (ex: R$ 100 / 3 = 33,33 * 3 = 99,99 -> resto R$ 0,01)
+        # são alocados integralmente na 1ª parcela para que a soma exata das parcelas nunca divirja do valor total.
         if installment_mode == "split":
             base_part = (amount / Decimal(count)).quantize(Decimal('0.01'))
             remainder = amount - (base_part * count)
@@ -118,9 +120,10 @@ class TransactionService:
         **updated_fields
     ) -> Transaction:
         """
-        Updates a transaction and adjusts account balance(s) with exact differentials.
+        Atualiza uma transação e recalcula o(s) saldo(s) com diferencial exato.
+        Quando a conta bancária muda, os locks pessimistas (`select_for_update`)
+        são adquiridos em ordem crescente de `pk` para impedir deadlocks no PostgreSQL.
         """
-        old_account = Account.objects.select_for_update().get(pk=transaction.account_id)
         old_strategy = TransactionStrategyFactory.get_strategy(transaction.type)
         old_delta = old_strategy.calculate_delta(transaction.amount)
 
@@ -131,16 +134,24 @@ class TransactionService:
         new_strategy = TransactionStrategyFactory.get_strategy(new_type)
         new_delta = new_strategy.calculate_delta(new_amount)
 
-        if old_account.pk == new_account.pk:
-            # Same account: adjust differential
-            old_account.balance = (old_account.balance or Decimal('0.00')) - old_delta + new_delta
-            old_account.save(update_fields=['balance'])
+        if transaction.account_id == new_account.pk:
+            # Mesma conta: aplica apenas a diferença líquida entre o delta antigo e o novo
+            locked_acc = Account.objects.select_for_update().get(pk=transaction.account_id)
+            locked_acc.balance = (locked_acc.balance or Decimal('0.00')) - old_delta + new_delta
+            locked_acc.save(update_fields=['balance'])
         else:
-            # Different account: revert old, apply to new
+            # Contas diferentes: bloqueia ambas em ordem determinística de ID (evita deadlock A->B vs B->A)
+            locked_map = {
+                acc.pk: acc
+                for acc in Account.objects.select_for_update()
+                .filter(pk__in=sorted({transaction.account_id, new_account.pk}))
+                .order_by('pk')
+            }
+            old_account = locked_map[transaction.account_id]
             old_account.balance = (old_account.balance or Decimal('0.00')) - old_delta
             old_account.save(update_fields=['balance'])
 
-            locked_new_account = Account.objects.select_for_update().get(pk=new_account.pk)
+            locked_new_account = locked_map[new_account.pk]
             locked_new_account.balance = (locked_new_account.balance or Decimal('0.00')) + new_delta
             locked_new_account.save(update_fields=['balance'])
 
