@@ -1,110 +1,113 @@
+# InWallet
 
- <h1>InWallet</h1>
+Plataforma de controle financeiro pessoal com **backend REST em Django + Django REST Framework** e **aplicativo mobile multiplataforma em React Native (Expo + TypeScript)**.
 
-Controle financeiro pessoal com Django
-🧩 Visão Geral
+## Visão Geral
 
-O inWallet é um sistema web desenvolvido em Django com foco em controle e análise financeira pessoal.
-O usuário pode registrar manualmente suas despesas e receitas, organizar por categorias, e visualizar relatórios de gastos mensais e por categoria.
+O **InWallet** permite gerenciar contas bancárias, categorias, transações (receitas, despesas, parcelamentos e recorrências), metas de orçamento por categoria e importação de extratos bancários (OFX e CSV), além de fluxo de assinatura **InWallet PRO** com geração de Pix BR Code (EMVCo/BACEN).
 
-🔍 Objetivo acadêmico:
-Este projeto foi desenvolvido com fins educacionais, para demonstrar boas práticas de desenvolvimento web com Django, uso de banco de dados PostgreSQL e geração de relatórios financeiros simples.
+## Arquitetura e Engenharia de Software
 
-🚀 Funcionalidades
+O projeto segue arquitetura **cliente-servidor desacoplada** e aplica princípios **SOLID** e padrões de projeto no backend e no mobile:
 
-✔️ Cadastro de contas (ex: Carteira, Nubank, Banco X)
-✔️ Cadastro manual de transações (gastos e receitas)
-✔️ Organização por categorias (ex: Alimentação, Transporte, Salário)
-✔️ Dashboard com resumo financeiro mensal
-✔️ Relatório de gastos por categoria (Top 5 gastos)
-✔️ Sistema de login e autenticação de usuários
-✔️ Preparado para integração futura com bancos e importação de extratos
-✔️ Configuração via .env para segurança e portabilidade
+### Backend (`inwallet/`, `wallet/`, `users/`)
+- **Service Layer (`wallet/services/`)**: isola regras de negócio das views e serializers (`TransactionService`, `DashboardService`, `StatementImportService`, `PaymentGatewayService`).
+- **Strategy + Factory/Registry (`wallet/services/strategies.py`)**: `BaseTransactionStrategy`, `IncomeStrategy`, `ExpenseStrategy` e `TransactionStrategyFactory` aplicam o **Open/Closed Principle (OCP)** para cálculo de variação de saldo.
+- **Atomicidade e Prevenção de Deadlocks (`wallet/services/transaction_service.py`)**: operações de criação, edição e exclusão usam `@db_transaction.atomic` e `Account.objects.select_for_update()`, com ordenação determinística de `pk` na troca de contas para evitar deadlocks no PostgreSQL.
+- **Otimização de Consultas**:
+  - `DashboardService` agrega métricas mensais e anuais em consulta única com `Sum(Case(When(...)))` e `TruncMonth`.
+  - `StatementImportService` pré-carrega tags `[REF:...]` em memória para deduplicação em $O(1)$, evitando *N+1 queries*.
+- **Autenticação e Permissões**: JWT Stateless (`djangorestframework-simplejwt`) com rotação de refresh token e permissão customizada `IsProUser` (`wallet/permissions.py`).
 
+### Mobile (`frontend/`)
+- **Expo + React Native + TypeScript**: compatível com Android, iOS e Web (`react-native-web`).
+- **Layout Adaptativo (`frontend/App.tsx`)**: alterna automaticamente entre `TabBar` inferior (mobile) e `Sidebar` lateral (telas $\ge$ 840px).
+- **Armazenamento Seguro (`frontend/src/api/client.ts`)**: tokens JWT armazenados via `expo-secure-store` (Keychain no iOS / KeyStore no Android), com fallback controlado para `AsyncStorage` na Web.
+- **Refresh Token com Lock de Concorrência (`frontend/src/api/client.ts`)**: interceptador Axios compartilha uma única `refreshPromise` quando múltiplas requisições simultâneas retornam `401`.
+- **Context API & Engine de Temas (`frontend/src/contexts/`)**: `AuthContext` para sessão e `ThemeContext` com `createThemedStyles` (cache de `StyleSheet` para temas `dark` e `light`).
 
-⚙️ Tecnologias Utilizadas
-Tecnologia	Descrição
-Python 3.11+	Linguagem principal
-Django 4.2 LTS	Framework web backend
-PostgreSQL	Banco de dados relacional
-django-environ	Configuração por variáveis de ambiente
-Gunicorn	Servidor WSGI para deploy
-Whitenoise	Gerenciamento de arquivos estáticos
-Bootstrap 5	Estilização do front-end
-Docker Compose	Orquestração de containers (banco + app)
-⚙️ Instalação e Execução Local
-🔹 1. Clonar o repositório
-git clone:  github.com/Samueljonas/Projeto_DSW.git
-cd inwallet
+## Tecnologias Utilizadas
 
-🔹 2. Criar ambiente virtual
+| Camada | Tecnologias |
+| :--- | :--- |
+| **Backend** | Python 3.12, Django 4.2 LTS, Django REST Framework, SimpleJWT, django-cors-headers, WhiteNoise, Gunicorn |
+| **Banco de Dados** | PostgreSQL 16 (Docker/Produção) ou SQLite (desenvolvimento local) |
+| **Mobile** | Expo (~58), React Native (0.88), React 19, TypeScript, Axios, `expo-secure-store`, `@react-native-async-storage/async-storage` |
+| **Qualidade & Infra** | `pytest`, `pytest-django`, `flake8`, Docker & Docker Compose |
+
+## Estrutura do Projeto
+
+```text
+InWallet/
+├── inwallet/               # Configurações centrais do Django (settings, urls, wsgi)
+├── wallet/                 # Domínio financeiro (models, serializers, api_views, permissions, tests)
+│   └── services/           # Regras de negócio (TransactionService, DashboardService, StatementImportService, strategies)
+├── users/                  # Autenticação, perfil, assinaturas PRO e PaymentGatewayService (Pix EMVCo)
+├── frontend/               # Aplicativo Mobile Expo / React Native + TypeScript
+│   ├── App.tsx             # Navegação por estado e layout responsivo (TabBar / Sidebar)
+│   └── src/
+│       ├── api/            # Cliente Axios, SecureStore e refresh automático de JWT
+│       ├── contexts/       # AuthContext e ThemeContext
+│       ├── components/     # Charts, Modais (Upgrade, Importação OFX/CSV, Legal), UI base
+│       └── screens/        # Login, Register, Dashboard, Transactions, NewTransaction, Manage
+├── docs/                   # Documentação de deploy e documentos legais (Privacidade / Termos)
+├── DockerFile              # Imagem de produção do backend
+└── docker-compose.yml      # Orquestração PostgreSQL + Backend
+```
+
+## Como Executar Localmente
+
+### 1. Backend (Django)
+
+```bash
+# Criar e ativar ambiente virtual
 python3 -m venv .venv
 source .venv/bin/activate
 
-🔹 3. Instalar dependências
+# Instalar dependências
 pip install -r requirements.txt
 
-🔹 4. Configurar variáveis de ambiente
+# Configurar variáveis de ambiente
+cp .env.example .env
 
-Crie um arquivo .env na raiz:
-
-DEBUG=True
-SECRET_KEY=chave_dev_trocar
-DB_NAME=inwallet_db
-DB_USER=inwallet_user
-DB_PASS=senha_dev
-DB_HOST=localhost
-DB_PORT=5432
-ALLOWED_HOSTS=127.0.0.1,localhost
-
-🔹 5. Rodar migrações
-python manage.py makemigrations
+# Aplicar migrações e iniciar o servidor acessível na rede local (para Expo Go)
 python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
+```
 
-🔹 6. Criar superusuário
-python manage.py createsuperuser
+### 2. Aplicativo Mobile (Expo)
 
-🔹 7. Executar servidor local
-python manage.py runserver
+> **Importante:** execute os comandos do Expo dentro da pasta `frontend/`.
 
+```bash
+cd frontend
+npm install
+npx expo start
+```
 
-Acesse em: 👉 http://127.0.0.1:8000
+- Pressione `a` para Android, `i` para iOS, `w` para Web ou escaneie o QR Code no **Expo Go** (na mesma rede Wi-Fi do backend).
+- Opcionalmente, defina `EXPO_PUBLIC_API_URL` para apontar explicitamente para a URL do backend.
 
+### 3. Docker Compose (PostgreSQL + Backend)
 
+```bash
+docker compose up --build
+```
 
-🧠 Estrutura Lógica
-Componente	Função
-models.py	Define as tabelas: Account, Category, Transaction
-views.py	Controla fluxo de dados (Dashboard, CRUD de transações, relatórios)
-forms.py	Formulários Django ModelForm
-urls.py	Mapeia rotas e URLs
-templates/	Interface HTML com Bootstrap
-settings.py	Configurações de ambiente e banco 
-.env	Credenciais e variáveis seguras
-.gitignore	Impede envio de arquivos sensíveis ao GitHub
+## Testes e Verificações
 
-📊 Relatórios e Análises
+```bash
+# Testes unitários e de integração do backend
+.venv/bin/pytest
 
-O dashboard mostra:
+# Verificação do Django
+.venv/bin/python manage.py check
 
-Saldos por conta
+# Verificação de tipos TypeScript no mobile
+cd frontend && npx tsc --noEmit
+```
 
-Resumo mensal (últimos 12 meses)
+## Autores
 
-Top 5 categorias mais gastas
-
-Esses dados são calculados usando QuerySets Django com funções de agregação (Sum, Case, When, TruncMonth), permitindo análises rápidas diretamente no banco.
-
-
-🧑‍💻 Autores
-
-Samuel Jonas
-
-Jairon José
-
-💼 Projeto desenvolvido para fins acadêmicos.
-📧 samueljonascali@gmail.com
-
-
-💼 Projeto desenvolvido para fins acadêmicos.
-📧 jaironmitoj@gmail.com
+- **Samuel Jonas** — `samueljonascali@gmail.com`
+- **Jairon José** — `jaironmitoj@gmail.com`
