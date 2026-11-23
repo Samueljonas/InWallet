@@ -137,8 +137,24 @@ export function applyThemePalette(name: ThemeName): void {
 }
 
 export const chartPalettes: Record<ThemeName, string[]> = {
-  dark: ["#3B82F6", "#38BDF8", "#818CF8", "#2DD4BF", "#60A5FA", "#94A3B8", "#A78BFA"],
-  light: ["#2563EB", "#0284C7", "#4F46E5", "#0D9488", "#3B82F6", "#64748B", "#7C3AED"],
+  dark: [
+    "#3B82F6",
+    "#38BDF8",
+    "#818CF8",
+    "#2DD4BF",
+    "#60A5FA",
+    "#94A3B8",
+    "#A78BFA",
+  ],
+  light: [
+    "#2563EB",
+    "#0284C7",
+    "#4F46E5",
+    "#0D9488",
+    "#3B82F6",
+    "#64748B",
+    "#7C3AED",
+  ],
 };
 
 export const chartPalette = chartPalettes.dark;
